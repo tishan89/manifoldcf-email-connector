@@ -16,3 +16,13 @@ Deliverables
 1. Email connector for ManifoldCF
 2. Test suit for Email connector(unit & integration)
 2. User manual for email connector
+
+Build and deploy
+1. Check out the source
+2. Navigate to root folder
+3. Execute 'ant jar'
+4. Navigate to build/jar
+5. Copy email-connector jar to $MCF_HOME/dist/connector-lib
+6. Add "<repositoryconnector name="email" class="org.apache.manifoldcf.crawler.connectors.email.EmailConnector"/>" to
+   connector.xml at $MCF_HOME/dist/
+7. Run Manifold quick start
