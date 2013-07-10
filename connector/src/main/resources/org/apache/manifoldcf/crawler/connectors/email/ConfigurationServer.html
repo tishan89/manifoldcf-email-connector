@@ -18,17 +18,128 @@
 #if($TabName == 'Server')
 
 <table class="displaytable">
-    <tr><td class="separator" colspan="2"><hr/></td></tr>
     <tr>
-        <td class="description"><nobr>Host server URL:</nobr></td>
-        <td class="value">
-            <input type="text" size="64" name="hostserverurl" value="$Encoder.attributeEscape($hostserverurl)"/>
+        <td class="separator" colspan="2">
+            <hr/>
         </td>
     </tr>
+    <tr>
+        <td class="description">
+            <nobr>
+                Protocol:
+            </nobr>
+        </td>
+        <td class="value">
+            <select id="protocol" name="protocol">
+                #if($PROTOCOL == "IMAP")
+                <option value="imap" selected="selected">IMAP</option>
+                <option value="pop3">POP3</option>
+                <option value="smtp">SMTP</option>
+                #elseif($PROTOCOL == "POP3")
+                <option value="imap">IMAP</option>
+                <option value="pop3" selected="selected">POP3</option>
+                <option value="smtp">SMTP</option>
+                #else
+                <option value="imap">IMAP</option>
+                <option value="pop3">POP3</option>
+                <option value="smtp" selected="selected">SMTP</option>
+                #end
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td class="description">
+            <nobr>
+                Host Email Server URL:
+            </nobr>
+        </td>
+        <td class="value">
+            <input id="server" name="server" type="text" size="32" value="$Encoder.attributeEscape($HOSTSERVERURL)"/>
+        </td>
+    </tr>
+    <tr>
+        <td class="description">
+            <nobr>
+                Port:
+            </nobr>
+        </td>
+        <td class="value">
+            <input id="port" name="port" type="text" size="5" value="$Encoder.attributeEscape($PORT)"/>
+        </td>
+    </tr>
+    <tr>
+        <td class="description">
+            <nobr>
+                User Name:
+            </nobr>
+        </td>
+        <td class="value">
+            <input type="text" id="username" name="username" value="$Encoder.attributeEscape($USERNAME)"/>
+        </td>
+    </tr>
+    <tr>
+        <td class="description">
+            <nobr>
+                Password:
+            </nobr>
+        </td>
+        <td class="value">
+            <input type="password" id="password" name="password" value="$Encoder.attributeEscape($PASSWORD)"/>
+        </td>
+    </tr>
+    <tr>
+
+        <td class="description">
+            <nobr>Properties</nobr>
+        </td>
+        <td class="boxcell">
+            <table class="formtable">
+                <tr class="formheaderrow">
+                    <td class="formcolumnheader"></td>
+                    <td class="formcolumnheader">
+                        <nobr>Property</nobr>
+                    </td>
+                    <td class="formcolumnheader">
+                        <nobr>Value</nobr>
+                    </td>
+                </tr>
+                #foreach( $key in $PROPERTIES.keySet() )
+                <tr>
+                    <td class="formcolumncell"></td>
+                    <td class="formcolumnheader">
+                        <nobr>$key</nobr>
+                    </td>
+                    <td class="formcolumnheader">
+                        <nobr>$PROPERTIES.get($key)</nobr>
+                    </td>
+                </tr>
+                #end
+                <tr>
+                    <td class="formcolumncell">
+                        <a name="bandwidth">
+                            <input type="button" value="Add" onclick=javascript:addProperty();/>
+                        </a>
+
+                    </td>
+                    <td class="formcolumnheader">
+                        <nobr><input type="text" size="30" name="property" value=""/></nobr>
+                    </td>
+                    <td class="formcolumnheader">
+                        <nobr><input type="text" size="30" name="p_value" value=""/></nobr>
+                    </td>
+                </tr>
+            </table>
+    </tr>
+
 </table>
 
 #else
 
-<input type="hidden" name="hostserverurl" value="$Encoder.attributeEscape($hostserverurl)"/>
+<input type="hidden" name="username" value="$Encoder.attributeEscape($USERNAME)"/>
+<input type="hidden" name="password" value="$Encoder.attributeEscape($PASSWORD)"/>
+<input type="hidden" name="protocol" value="$Encoder.attributeEscape($PROTOCOL)"/>
+<input type="hidden" name="server" value="$Encoder.attributeEscape($HOSTSERVERURL)"/>
+<input type="hidden" name="port" value="$Encoder.attributeEscape($PORT)"/>
+<input type="hidden" name="properties" value=$PROPERTIES)/>
 
 #end
