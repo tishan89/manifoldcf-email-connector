@@ -19,7 +19,7 @@
     <!--
     function checkConfigForSave()
     {
-      if (editconnection.hostserverurl.value == "")
+      if (editconnection.HOSTSERVERURL.value == "")
       {
         alert("Enter a email server url");
         SelectTab("Server");
@@ -27,6 +27,14 @@
         return false;
       }
       return true;
+    }
+    //-->
+</script>
+<script type="text/javascript">
+    <!--
+    function addProperty()
+    {
+      postFormSetAnchor("property");    //Repost the form and send the browser to property anchor
     }
     //-->
 </script>
