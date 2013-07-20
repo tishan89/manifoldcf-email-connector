@@ -127,9 +127,11 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         Map<String, String> properties = new HashMap<String, String>();
         while (i < parameters.getChildCount())     //In post property set is added as a configuration node
         {
-            ConfigNode cn = parameters.getChild(i++);
+            ConfigNode cn = parameters.getChild(i);
             if (cn.getType().equals(EmailConfig.NODE_PROPERTIES)) {
-                properties.put(cn.getAttributeValue(EmailConfig.SERVER_PROPERTY), cn.getAttributeValue(EmailConfig.VALUE));
+                for(int j=0; j<cn.getAttributeCount();j++){
+                properties.put(cn.getAttributeValue(EmailConfig.SERVER_PROPERTY+"_"+j), cn.getAttributeValue(EmailConfig.VALUE+"_"+j));
+                }
             }
         }
 
@@ -151,5 +153,75 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         paramMap.put(EmailConfig.PORT_PARAM, port);
         paramMap.put(EmailConfig.PROPERTIES_PARAM, properties);
 
+    }
+
+    /** Process a configuration post.
+     * This method is called at the start of the connector's configuration page, whenever there is a possibility
+     * that form data for a connection has been posted.  Its purpose is to gather form information and modify
+     * the configuration parameters accordingly.
+     * The name of the posted form is always "editconnection".
+     * The connector does not need to be connected for this method to be called.
+     *@param threadContext is the local thread context.
+     *@param variableContext is the set of variables available from the post, including binary file post information.
+     *@param parameters are the configuration parameters, as they currently exist, for this connection being configured.
+     *@return null if all is well, or a string error message if there is an error that should prevent saving of the
+     *   connection (and cause a redirection to an error page).
+     */
+    @Override
+    public String processConfigurationPost(IThreadContext threadContext, IPostParameters variableContext,
+                                           ConfigParams parameters)
+            throws ManifoldCFException
+    {
+        String userName = variableContext.getParameter(EmailConfig.USERNAME_PARAM);
+        if (userName != null)
+            parameters.setParameter(EmailConfig.USERNAME_PARAM, userName);
+        String password = variableContext.getParameter(EmailConfig.PASSWORD_PARAM);
+        if (password != null)
+            parameters.setParameter(EmailConfig.PASSWORD_PARAM, password);
+        String protocol = variableContext.getParameter(EmailConfig.PROTOCOL_PARAM);
+        if (protocol != null)
+            parameters.setParameter(EmailConfig.PROTOCOL_PARAM,protocol);
+        String server = variableContext.getParameter(EmailConfig.SERVER_PARAM);
+        if (server != null)
+            parameters.setParameter(EmailConfig.SERVER_PARAM,server);
+        String port = variableContext.getParameter(EmailConfig.PORT_PARAM);
+        if (port != null)
+            parameters.setParameter(EmailConfig.PORT_PARAM,protocol);
+        boolean isFirstPost = true;
+
+            int i=0;
+            while (i < parameters.getChildCount())
+            {
+                ConfigNode node = parameters.getChild(i);
+                if (node.getType().equals(EmailConfig.NODE_PROPERTIES)) {
+                    isFirstPost = false;
+                    int j;
+                    for(j=0; j<node.getAttributeCount();j++){}                   //iterate through current attributes
+                    String property = variableContext.getParameter(EmailConfig.SERVER_PROPERTY+"_"+j);
+                    String value = variableContext.getParameter(EmailConfig.VALUE+"_"+j);
+                    if (property != null && value != null) {
+                    node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+j, property);
+                    node.setAttribute(EmailConfig.VALUE+"_"+j,value);
+                    }
+                }
+
+                else
+                    i++;
+            }
+        if(isFirstPost){
+            ConfigNode node = new ConfigNode(EmailConfig.NODE_PROPERTIES);
+            String property = variableContext.getParameter(EmailConfig.SERVER_PROPERTY+"_"+0);
+            String value = variableContext.getParameter(EmailConfig.VALUE+"_"+0);
+            if (property != null && value != null) {
+                node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+0, property);
+                node.setAttribute(EmailConfig.VALUE+"_"+0,value);
+            }
+        }
+
+
+
+
+
+        return null;
     }
 }
