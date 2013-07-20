@@ -58,5 +58,5 @@ public class EmailConfig {
 
     public static final String NODE_PROPERTIES = "properties";
     public static final String SERVER_PROPERTY = "serverproperty";
-    public static final String VALUE = "value";
+    public static final String VALUE = "p_value";
 }
