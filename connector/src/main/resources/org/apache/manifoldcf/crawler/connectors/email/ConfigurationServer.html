@@ -15,7 +15,7 @@
  limitations under the License.
 -->
 
-#if($TabName == 'Server')
+#if($TABNAME == 'Server')
 
 <table class="displaytable">
     <tr>
@@ -103,6 +103,8 @@
                         <nobr>Value</nobr>
                     </td>
                 </tr>
+                #ifnotnull ($PROPERTIES)
+                #set($count = 0)
                 #foreach( $key in $PROPERTIES.keySet() )
                 <tr>
                     <td class="formcolumncell"></td>
@@ -113,19 +115,21 @@
                         <nobr>$PROPERTIES.get($key)</nobr>
                     </td>
                 </tr>
+                #set($count = $count + 1);
+                #end
                 #end
                 <tr>
                     <td class="formcolumncell">
-                        <a name="bandwidth">
+                        <a name="property">
                             <input type="button" value="Add" onclick=javascript:addProperty();/>
                         </a>
 
                     </td>
                     <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="property" value=""/></nobr>
+                        <nobr><input type="text" size="30" name="serverproperty" id="serverproperty_$count" value=""/></nobr>
                     </td>
                     <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="p_value" value=""/></nobr>
+                        <nobr><input type="text" size="30" name="p_value" id="p_value_$count" value=""/></nobr>
                     </td>
                 </tr>
             </table>
@@ -134,12 +138,11 @@
 </table>
 
 #else
-
 <input type="hidden" name="username" value="$Encoder.attributeEscape($USERNAME)"/>
 <input type="hidden" name="password" value="$Encoder.attributeEscape($PASSWORD)"/>
 <input type="hidden" name="protocol" value="$Encoder.attributeEscape($PROTOCOL)"/>
 <input type="hidden" name="server" value="$Encoder.attributeEscape($HOSTSERVERURL)"/>
 <input type="hidden" name="port" value="$Encoder.attributeEscape($PORT)"/>
-<input type="hidden" name="properties" value=$PROPERTIES)/>
+<input type="hidden" name="properties" value=($PROPERTIES)/>
 
 #end
