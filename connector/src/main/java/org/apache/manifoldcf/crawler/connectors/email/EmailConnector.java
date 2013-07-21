@@ -224,4 +224,43 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
 
         return null;
     }
+
+    /**
+     * View configuration. This method is called in the body section of the
+     * connector's view configuration page. Its purpose is to present the
+     * connection information to the user. The coder can presume that the HTML that
+     * is output from this configuration will be within appropriate <html> and
+     * <body> tags.
+     *
+     * @param threadContext
+     *          is the local thread context.
+     * @param out
+     *          is the output to which any HTML should be sent.
+     * @param parameters
+     *          are the configuration parameters, as they currently exist, for
+     *          this connection being configured.
+     */
+    @Override
+    public void viewConfiguration(IThreadContext threadContext, IHTTPOutput out,
+                                  Locale locale, ConfigParams parameters) throws ManifoldCFException, IOException {
+        Map<String,Object> paramMap = new HashMap<String,Object>();
+
+        // Fill in map from each tab
+        fillInServerConfigurationMap(paramMap, parameters);
+
+        outputResource("viewConfiguration.html", out, locale, paramMap);
+    }
+
+    /**
+     * Read the content of a resource, replace the variable ${PARAMNAME} with the
+     * value and copy it to the out.
+     *
+     * @param resName
+     * @param out
+     * @throws ManifoldCFException
+     */
+    private static void outputResource(String resName, IHTTPOutput out,
+                                       Locale locale, Map<String,Object> paramMap) throws ManifoldCFException {
+        Messages.outputResourceWithVelocity(out,locale,resName,paramMap);
+    }
 }
