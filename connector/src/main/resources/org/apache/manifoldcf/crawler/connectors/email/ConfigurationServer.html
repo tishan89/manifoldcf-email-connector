@@ -31,11 +31,11 @@
         </td>
         <td class="value">
             <select id="protocol" name="protocol">
-                #if($PROTOCOL == "IMAP")
+                #if($PROTOCOL == 'IMAP')
                 <option value="imap" selected="selected">IMAP</option>
                 <option value="pop3">POP3</option>
                 <option value="smtp">SMTP</option>
-                #elseif($PROTOCOL == "POP3")
+                #elseif($PROTOCOL == 'POP3')
                 <option value="imap">IMAP</option>
                 <option value="pop3" selected="selected">POP3</option>
                 <option value="smtp">SMTP</option>
@@ -64,7 +64,7 @@
             </nobr>
         </td>
         <td class="value">
-            <input id="port" name="port" type="text" size="5" value="$Encoder.attributeEscape($PORT)"/>
+            <input type="text" id="port" name="port" value="$Encoder.attributeEscape($PORT)"/>
         </td>
     </tr>
     <tr>

@@ -133,6 +133,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                 properties.put(cn.getAttributeValue(EmailConfig.SERVER_PROPERTY+"_"+j), cn.getAttributeValue(EmailConfig.VALUE+"_"+j));
                 }
             }
+            i++;
         }
 
         if (username == null)
