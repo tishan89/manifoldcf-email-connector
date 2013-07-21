@@ -19,11 +19,11 @@
 <!--
 function checkConfigForSave()
     {
-      if (editconnection.HOSTSERVERURL.value == "")
+      if (editconnection.server.value == "")
       {
         alert("Enter a email server url");
         SelectTab("Server");
-        editconnection.hostserverurl.focus();
+        editconnection.server.focus();
         return false;
       }
       return true;
