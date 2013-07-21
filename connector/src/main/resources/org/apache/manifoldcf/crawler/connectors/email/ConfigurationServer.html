@@ -103,7 +103,7 @@
                         <nobr>Value</nobr>
                     </td>
                 </tr>
-                #ifnotnull ($PROPERTIES)
+                #if($PROPERTIES)
                 #set($count = 0)
                 #foreach( $key in $PROPERTIES.keySet() )
                 <tr>
@@ -137,7 +137,7 @@
 
 </table>
 
-#else
+ #else
 <input type="hidden" name="username" value="$Encoder.attributeEscape($USERNAME)"/>
 <input type="hidden" name="password" value="$Encoder.attributeEscape($PASSWORD)"/>
 <input type="hidden" name="protocol" value="$Encoder.attributeEscape($PROTOCOL)"/>
