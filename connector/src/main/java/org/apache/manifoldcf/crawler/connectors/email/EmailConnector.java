@@ -100,7 +100,14 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                           Locale locale, ConfigParams parameters, List<String> tabsArray)
             throws ManifoldCFException, IOException {
         tabsArray.add("Server");
-        Messages.outputResourceWithVelocity(out, locale, "ConfigurationHeader.html", null);
+        // Map the parameters
+        Map<String,Object> paramMap = new HashMap<String,Object>();
+
+        // Fill in the parameters from each tab
+        fillInServerConfigurationMap(paramMap, parameters);
+
+        // Output the Javascript - only one Velocity template for all tabs
+        outputResource("configurationHeader.js", out, locale, paramMap);
     }
 
     @Override
