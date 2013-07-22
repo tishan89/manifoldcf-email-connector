@@ -129,7 +129,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         String username = parameters.getParameter(EmailConfig.USERNAME_PARAM);
         String password = parameters.getParameter(EmailConfig.PASSWORD_PARAM);
         String protocol = parameters.getParameter(EmailConfig.PROTOCOL_PARAM);
-        String hostserverurl = parameters.getParameter(EmailConfig.SERVER_PARAM);
+        String server = parameters.getParameter(EmailConfig.SERVER_PARAM);
         String port = parameters.getParameter(EmailConfig.PORT_PARAM);
         Map<String, String> properties = new HashMap<String, String>();
         while (i < parameters.getChildCount())     //In post property set is added as a configuration node
@@ -149,15 +149,15 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             password = StringUtils.EMPTY;
         if (protocol == null)
             protocol = EmailConfig.PROTOCOL_DEFAULT_VALUE;
-        if (hostserverurl == null)
-            hostserverurl = StringUtils.EMPTY;
+        if (server == null)
+            server = StringUtils.EMPTY;
         if (port == null)
             port = EmailConfig.PORT_DEFAULT_VALUE;
 
         paramMap.put(EmailConfig.USERNAME_PARAM, username);
         paramMap.put(EmailConfig.PASSWORD_PARAM, password);
         paramMap.put(EmailConfig.PROTOCOL_PARAM, protocol);
-        paramMap.put(EmailConfig.SERVER_PARAM, hostserverurl);
+        paramMap.put(EmailConfig.SERVER_PARAM, server);
         paramMap.put(EmailConfig.PORT_PARAM, port);
         paramMap.put(EmailConfig.PROPERTIES_PARAM, properties);
 
@@ -194,7 +194,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             parameters.setParameter(EmailConfig.SERVER_PARAM,server);
         String port = variableContext.getParameter(EmailConfig.PORT_PARAM);
         if (port != null)
-            parameters.setParameter(EmailConfig.PORT_PARAM,protocol);
+            parameters.setParameter(EmailConfig.PORT_PARAM,port);
         boolean isFirstPost = true;
 
             int i=0;
@@ -223,6 +223,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             if (property != null && value != null) {
                 node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+0, property);
                 node.setAttribute(EmailConfig.VALUE+"_"+0,value);
+
             }
         }
 

@@ -54,7 +54,7 @@
             </nobr>
         </td>
         <td class="value">
-            <input id="server" name="server" type="text" size="32" value="$Encoder.attributeEscape($HOSTSERVERURL)"/>
+            <input id="server" name="server" type="text" size="32" value="$Encoder.attributeEscape($SERVER)"/>
         </td>
     </tr>
     <tr>
@@ -126,10 +126,10 @@
 
                     </td>
                     <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="serverproperty" id="serverproperty_$count" value=""/></nobr>
+                        <nobr><input type="text" size="30" name="serverproperty_$count" id="serverproperty_$count" value=""/></nobr>
                     </td>
                     <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="p_value" id="p_value_$count" value=""/></nobr>
+                        <nobr><input type="text" size="30" name="p_value_$count" id="p_value_$count" value=""/></nobr>
                     </td>
                 </tr>
             </table>
@@ -141,7 +141,7 @@
 <input type="hidden" name="username" value="$Encoder.attributeEscape($USERNAME)"/>
 <input type="hidden" name="password" value="$Encoder.attributeEscape($PASSWORD)"/>
 <input type="hidden" name="protocol" value="$Encoder.attributeEscape($PROTOCOL)"/>
-<input type="hidden" name="server" value="$Encoder.attributeEscape($HOSTSERVERURL)"/>
+<input type="hidden" name="server" value="$Encoder.attributeEscape($SERVER)"/>
 <input type="hidden" name="port" value="$Encoder.attributeEscape($PORT)"/>
 <input type="hidden" name="properties" value=($PROPERTIES)/>
 

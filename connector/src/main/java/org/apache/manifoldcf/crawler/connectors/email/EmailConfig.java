@@ -40,7 +40,7 @@ public class EmailConfig {
     /**
      * Server name
      */
-    public static final String SERVER_PARAM = "hostserverurl";
+    public static final String SERVER_PARAM = "server";
 
     /**
      * Port
