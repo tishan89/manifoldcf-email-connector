@@ -136,7 +136,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         {
             ConfigNode cn = parameters.getChild(i);
             if (cn.getType().equals(EmailConfig.NODE_PROPERTIES)) {
-                for(int j=0; j<cn.getAttributeCount();j++){
+                for(int j=0; j<cn.getAttributeCount()/2;j++){
                 properties.put(cn.getAttributeValue(EmailConfig.SERVER_PROPERTY+"_"+j), cn.getAttributeValue(EmailConfig.VALUE+"_"+j));
                 }
             }
@@ -223,7 +223,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             if (property != null && value != null) {
                 node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+0, property);
                 node.setAttribute(EmailConfig.VALUE+"_"+0,value);
-
+                parameters.addChild(parameters.getChildCount(),node);
             }
         }
 
