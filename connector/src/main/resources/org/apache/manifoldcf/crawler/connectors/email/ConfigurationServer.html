@@ -88,51 +88,94 @@
         </td>
     </tr>
     <tr>
-
         <td class="description">
-            <nobr>Properties</nobr>
+            <nobr>Matches:</nobr>
         </td>
         <td class="boxcell">
             <table class="formtable">
                 <tr class="formheaderrow">
                     <td class="formcolumnheader"></td>
                     <td class="formcolumnheader">
-                        <nobr>Property</nobr>
+                        <nobr>Server Property</nobr>
                     </td>
                     <td class="formcolumnheader">
                         <nobr>Value</nobr>
                     </td>
                 </tr>
-                #if($PROPERTIES)
-                #set($count = 0)
-                #foreach( $key in $PROPERTIES.keySet() )
-                <tr>
-                    <td class="formcolumncell"></td>
-                    <td class="formcolumnheader">
-                        <nobr>$key</nobr>
-                    </td>
-                    <td class="formcolumnheader">
-                        <nobr>$PROPERTIES.get($key)</nobr>
-                    </td>
-                </tr>
-                #set($count = $count + 1)
-                #end
-                #end
-                <tr>
-                    <td class="formcolumncell">
-                        <a name="property">
-                            <input type="button" value="Add" onclick="javascript:addProperty()"/>
-                        </a>
 
+                #set($k = 0)
+                #foreach($property in $PROPERTIES)
+
+                #if(($k % 2) == 0)
+                <tr class="evenformrow">
+                    #else
+                <tr class="oddformrow">
+                    #end
+
+                    <td class="formcolumncell">
+                        <input type="hidden" name="findop_$k" value=""/>
+                        <input type="hidden" name="findname_$k" value="$Encoder.attributeEscape($property.get('name'))"/>
+                        <input type="hidden" name="findvalue_$k" value="$Encoder.attributeEscape($property.get('value'))"/>
+                        <a name="find_$k">
+                            <input type="button" value="Delete" onClick='Javascript:FindDelete("$k")'
+                                   alt="Delete match #$k"/>
+                        </a>
                     </td>
-                    <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="serverproperty_$count" id="serverproperty_$count" value=""/></nobr>
+                    <td class="formcolumncell">
+                        <nobr>
+                            $Encoder.bodyEscape($property.get('name'))
+                        </nobr>
                     </td>
-                    <td class="formcolumnheader">
-                        <nobr><input type="text" size="30" name="p_value_$count" id="p_value_$count" value=""/></nobr>
+                    <td class="formcolumncell">
+                        <nobr>
+                            $Encoder.bodyEscape($property.get('value'))
+                        </nobr>
                     </td>
                 </tr>
+
+                #set($k = $k + 1)
+                #end
+
+                #if($k == 0)
+                <tr class="formrow">
+                    <td class="formcolumnmessage" colspan="3">No Server Properties specified</td>
+                </tr>
+                #end
+
+                <tr class="formrow">
+                    <td class="formseparator" colspan="3">
+                        <hr/>
+                    </td>
+                </tr>
+
+                #set($nextk = $k + 1)
+
+                <tr class="formrow">
+                    <td class="formcolumncell">
+                        <nobr>
+                            <a name="find_$k">
+                                <input type="button" value="Add" onClick='Javascript:FindAdd("$nextk")'
+                                       alt="Add new match"/>
+                                <input type="hidden" name="findcount" value="$k"/>
+                                <input type="hidden" name="findop" value=""/>
+                            </a>
+                        </nobr>
+                    </td>
+                    <td class="formcolumncell">
+                        <nobr>
+                            <input type="text" size="32" name="findname" value=""/>
+                        </nobr>
+                    </td>
+                    <td class="formcolumncell">
+                        <nobr>
+                            <input type="text" size="32" name="findvalue" value=""/>
+                        </nobr>
+                    </td>
+                </tr>
+
+
             </table>
+        </td>
     </tr>
 
 </table>
@@ -143,6 +186,15 @@
 <input type="hidden" name="protocol" value="$Encoder.attributeEscape($PROTOCOL)"/>
 <input type="hidden" name="server" value="$Encoder.attributeEscape($SERVER)"/>
 <input type="hidden" name="port" value="$Encoder.attributeEscape($PORT)"/>
-<input type="hidden" name="properties" value=($PROPERTIES)/>
+#set($k = 0)
+#foreach($property in $PROPERTIES)
+
+<input type="hidden" name="findname_$k" value="$Encoder.attributeEscape($PROPERTIES.get('name'))"/>
+<input type="hidden" name="findvalue_$k" value="$Encoder.attributeEscape($PROPERTIES.get('value'))"/>
+
+#set($k = $k + 1)
+#end
+
+<input type="hidden" name="findcount" value="$k"/>
 
 #end

@@ -36,16 +36,16 @@
       </nobr>
       <br />
       <nobr>
-        Server: $Encoder.bodyEscape($HOSTSERVERURL)
+        Server: $Encoder.bodyEscape($SERVER)
       </nobr>
       <br />
       <nobr>
         Port: $Encoder.bodyEscape($PORT)
       </nobr>
       <br />
-        #foreach( $key in $PROPERTIES.keySet() )
+        #foreach( $property in $PROPERTIES )
         <nobr>
-          $key : $PROPERTIES.get($key)
+            $Encoder.bodyEscape($property.get('name')) : $Encoder.bodyEscape($property.get('value'))
         </nobr>
         <br />
         #end
