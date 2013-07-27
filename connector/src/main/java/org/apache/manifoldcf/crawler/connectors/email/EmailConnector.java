@@ -131,16 +131,18 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         String protocol = parameters.getParameter(EmailConfig.PROTOCOL_PARAM);
         String server = parameters.getParameter(EmailConfig.SERVER_PARAM);
         String port = parameters.getParameter(EmailConfig.PORT_PARAM);
-        Map<String, String> properties = new HashMap<String, String>();
+        List<Map<String,String>> list = new ArrayList<Map<String,String>>();
         while (i < parameters.getChildCount())     //In post property set is added as a configuration node
         {
-            ConfigNode cn = parameters.getChild(i);
+            ConfigNode cn = parameters.getChild(i++);
             if (cn.getType().equals(EmailConfig.NODE_PROPERTIES)) {
-                for(int j=0; j<cn.getAttributeCount()/2;j++){
-                properties.put(cn.getAttributeValue(EmailConfig.SERVER_PROPERTY+"_"+j), cn.getAttributeValue(EmailConfig.VALUE+"_"+j));
-                }
+                String findParameterName = cn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                String findParameterValue = cn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
+                Map<String,String> row = new HashMap<String,String>();
+                row.put("name",findParameterName);
+                row.put("value",findParameterValue);
+                list.add(row);
             }
-            i++;
         }
 
         if (username == null)
@@ -159,7 +161,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         paramMap.put(EmailConfig.PROTOCOL_PARAM, protocol);
         paramMap.put(EmailConfig.SERVER_PARAM, server);
         paramMap.put(EmailConfig.PORT_PARAM, port);
-        paramMap.put(EmailConfig.PROPERTIES_PARAM, properties);
+        paramMap.put(EmailConfig.PROPERTIES_PARAM, list);
 
     }
 
@@ -195,43 +197,64 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         String port = variableContext.getParameter(EmailConfig.PORT_PARAM);
         if (port != null)
             parameters.setParameter(EmailConfig.PORT_PARAM,port);
-        boolean isFirstPost = true;
+        // Remove old find parameter document specification information
+        removeNodes(parameters,EmailConfig.NODE_PROPERTIES);
 
-            int i=0;
-            while (i < parameters.getChildCount())
+        // Parse the number of records that were posted
+        String findCountString = variableContext.getParameter("findcount");
+        if (findCountString != null)
+        {
+            int findCount = Integer.parseInt(findCountString);
+
+            // Loop throught them and add new server properties
+            int i = 0;
+            while (i < findCount)
             {
-                ConfigNode node = parameters.getChild(i);
-                if (node.getType().equals(EmailConfig.NODE_PROPERTIES)) {
-                    isFirstPost = false;
-                    int j;
-                    for(j=0; j<node.getAttributeCount();j++){}                   //iterate through current attributes
-                    String property = variableContext.getParameter(EmailConfig.SERVER_PROPERTY+"_"+j);
-                    String value = variableContext.getParameter(EmailConfig.VALUE+"_"+j);
-                    if (property != null && value != null) {
-                    node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+j, property);
-                    node.setAttribute(EmailConfig.VALUE+"_"+j,value);
-                    }
+                String suffix = "_"+Integer.toString(i++);
+                // Only add the name/value if the item was not deleted.
+                String findParameterOp = variableContext.getParameter("findop"+suffix);
+                if (findParameterOp == null || !findParameterOp.equals("Delete"))
+                {
+                    String findParameterName = variableContext.getParameter("findname"+suffix);
+                    String findParameterValue = variableContext.getParameter("findvalue"+suffix);
+                    addFindParameterNode(parameters,findParameterName,findParameterValue);
                 }
-
-                else
-                    i++;
-            }
-        if(isFirstPost){
-            ConfigNode node = new ConfigNode(EmailConfig.NODE_PROPERTIES);
-            String property = variableContext.getParameter(EmailConfig.SERVER_PROPERTY+"_"+0);
-            String value = variableContext.getParameter(EmailConfig.VALUE+"_"+0);
-            if (property != null && value != null) {
-                node.setAttribute(EmailConfig.SERVER_PROPERTY+"_"+0, property);
-                node.setAttribute(EmailConfig.VALUE+"_"+0,value);
-                parameters.addChild(parameters.getChildCount(),node);
             }
         }
 
-
-
-
+        // Now, look for a global "Add" operation
+        String operation = variableContext.getParameter("findop");
+        if (operation != null && operation.equals("Add"))
+        {
+            // Pick up the global parameter name and value
+            String findParameterName = variableContext.getParameter("findname");
+            String findParameterValue = variableContext.getParameter("findvalue");
+            addFindParameterNode(parameters,findParameterName,findParameterValue);
+        }
 
         return null;
+    }
+
+    private void addFindParameterNode(ConfigParams parameters, String findParameterName, String findParameterValue) {
+        ConfigNode cn = new ConfigNode(EmailConfig.NODE_PROPERTIES);
+        cn.setAttribute(EmailConfig.ATTRIBUTE_NAME,findParameterName);
+        cn.setAttribute(EmailConfig.ATTRIBUTE_VALUE,findParameterValue);
+        // Add to the end
+        parameters.addChild(parameters.getChildCount(),cn);
+    }
+
+    protected static void removeNodes(ConfigParams parameters,
+                                      String nodeTypeName)
+    {
+        int i = 0;
+        while (i < parameters.getChildCount())
+        {
+            ConfigNode cn = parameters.getChild(i);
+            if (cn.getType().equals(nodeTypeName))
+                parameters.removeChild(i);
+            else
+                i++;
+        }
     }
 
     /**
