@@ -33,5 +33,35 @@ function checkConfigForSave()
         {
           postFormSetAnchor("property");    //Repost the form and send the browser to property anchor
         }
+
+    function SpecOp(n, opValue, anchorvalue)
+        {
+          eval("editconnection."+n+".value = \""+opValue+"\"");
+          postFormSetAnchor(anchorvalue);
+        }
+
+
+
+    function FindDelete(n)
+        {
+          SpecOp("findop_"+n, "Delete", "find_"+n);
+        }
+
+    function FindAdd(n)
+        {
+          if (editconnection.findname.value == "")
+          {
+            alert("Please select a metadata name first.");
+            editconnection.findname.focus();
+            return;
+          }
+          if (editconnection.findvalue.value == "")
+          {
+            alert("value cannot be blank.");
+            editconnection.findvalue.focus();
+            return;
+          }
+          SpecOp("findop", "Add", "find_"+n);
+        }
 //-->
 </script>
