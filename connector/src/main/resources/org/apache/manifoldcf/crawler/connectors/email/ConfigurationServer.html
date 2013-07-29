@@ -189,8 +189,8 @@
 #set($k = 0)
 #foreach($property in $PROPERTIES)
 
-<input type="hidden" name="findname_$k" value="$Encoder.attributeEscape($PROPERTIES.get('name'))"/>
-<input type="hidden" name="findvalue_$k" value="$Encoder.attributeEscape($PROPERTIES.get('value'))"/>
+<input type="hidden" name="findname_$k" value="$Encoder.attributeEscape($property.get('name'))"/>
+<input type="hidden" name="findvalue_$k" value="$Encoder.attributeEscape($property.get('value'))"/>
 
 #set($k = $k + 1)
 #end
