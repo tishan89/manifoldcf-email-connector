@@ -20,14 +20,7 @@ package org.apache.manifoldcf.crawler.connectors.email;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.manifoldcf.core.interfaces.*;
-import org.apache.manifoldcf.agents.interfaces.*;
 import org.apache.manifoldcf.crawler.interfaces.*;
-import org.apache.manifoldcf.crawler.system.Logging;
-import org.apache.manifoldcf.core.database.*;
-
-import java.sql.*;
-import javax.naming.*;
-import javax.sql.*;
 
 import java.io.*;
 import java.util.*;
@@ -294,5 +287,203 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     private static void outputResource(String resName, IHTTPOutput out,
                                        Locale locale, Map<String,Object> paramMap) throws ManifoldCFException {
         Messages.outputResourceWithVelocity(out,locale,resName,paramMap);
+    }
+
+    /** Output the specification header section.
+     * This method is called in the head section of a job page which has selected a repository connection of the
+     * current type.  Its purpose is to add the required tabs to the list, and to output any javascript methods
+     * that might be needed by the job editing HTML.
+     * The connector will be connected before this method can be called.
+     *@param out is the output to which any HTML should be sent.
+     *@param locale is the desired locale.
+     *@param ds is the current document specification for this job.
+     *@param tabsArray is an array of tab names.  Add to this array any tab names that are specific to the connector.
+     */
+    @Override
+    public void outputSpecificationHeader(IHTTPOutput out, Locale locale,
+                                          DocumentSpecification ds, List<String> tabsArray)
+            throws ManifoldCFException, IOException
+    {
+        // Add the tabs
+        //tabsArray.add("Specification");
+        tabsArray.add("Metadata");
+        outputResource("SpecificationHeader.js",out,locale,null);
+    }
+
+    /** Output the specification body section.
+     * This method is called in the body section of a job page which has selected a repository connection of the
+     * current type.  Its purpose is to present the required form elements for editing.
+     * The coder can presume that the HTML that is output from this configuration will be within appropriate
+     *  <html>, <body>, and <form> tags.  The name of the form is always "editjob".
+     * The connector will be connected before this method can be called.
+     *@param out is the output to which any HTML should be sent.
+     *@param locale is the desired locale.
+     *@param ds is the current document specification for this job.
+     *@param tabName is the current tab name.
+     */
+    @Override
+    public void outputSpecificationBody(IHTTPOutput out, Locale locale,
+                                        DocumentSpecification ds, String tabName)
+            throws ManifoldCFException, IOException
+    {
+        // Do the "Documents" tab
+        //outputDocumentsTab(out,locale,ds,tabName);
+        // Do the "Metadata" tab
+        outputMetadataTab(out,locale,ds,tabName);
+    }
+
+    /** Take care of "Metadata" tab.
+     */
+    protected void outputMetadataTab(IHTTPOutput out, Locale locale,
+                                     DocumentSpecification ds, String tabName)
+            throws ManifoldCFException, IOException
+    {
+        Map<String, Object> paramMap = new HashMap<String, Object>();
+        paramMap.put("TabName",tabName);
+        fillInMetadataTab(paramMap, ds);
+        fillInMetadataAttributes(paramMap);
+        outputResource("SpecificationMetadata.html",out,locale,paramMap);
+    }
+
+    /** Fill in Velocity context for Metadata tab.
+     */
+    protected static void fillInMetadataTab(Map<String,Object> paramMap,
+                                            DocumentSpecification ds)
+    {
+        Set<String> metadataSelections = new HashSet<String>();
+        int i = 0;
+        while (i < ds.getChildCount())
+        {
+            SpecificationNode sn = ds.getChild(i++);
+            if (sn.getType().equals(EmailConfig.NODE_METADATA))
+            {
+                String metadataName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                metadataSelections.add(metadataName);
+            }
+        }
+        paramMap.put("metadataselections",metadataSelections);
+    }
+
+    /** Fill in Velocity context with data to permit attribute selection.
+     */
+    protected void fillInMetadataAttributes(Map<String, Object> paramMap)
+    {
+            String[] matchNames = EmailConfig.BASIC_METADATA;
+            paramMap.put("metadataattributes",matchNames);
+    }
+
+    /** Process a specification post.
+     * This method is called at the start of job's edit or view page, whenever there is a possibility that form
+     * data for a connection has been posted.  Its purpose is to gather form information and modify the
+     * document specification accordingly.  The name of the posted form is always "editjob".
+     * The connector will be connected before this method can be called.
+     *@param variableContext contains the post data, including binary file-upload information.
+     *@param ds is the current document specification for this job.
+     *@return null if all is well, or a string error message if there is an error that should prevent saving of
+     * the job (and cause a redirection to an error page).
+     */
+    @Override
+    public String processSpecificationPost(IPostParameters variableContext, DocumentSpecification ds)
+            throws ManifoldCFException
+    {
+        // Pick up the Documents tab data
+        //String rval = processDocumentsTab(variableContext,ds);
+        //if (rval != null)
+        //    return rval;
+        // Pick up the Metadata tab data
+        String rval = processMetadataTab(variableContext,ds);
+        return rval;
+    }
+
+    /** Process form post for Documents tab.
+     */
+    /*protected String processDocumentsTab(IPostParameters variableContext, DocumentSpecification ds)
+            throws ManifoldCFException
+    {
+        // Remove old find parameter document specification information
+        removeNodes(ds,NODE_FIND_PARAMETER);
+
+        // Parse the number of records that were posted
+        String findCountString = variableContext.getParameter("findcount");
+        if (findCountString != null)
+        {
+            int findCount = Integer.parseInt(findCountString);
+
+            // Loop throught them and add to the new document specification information
+            int i = 0;
+            while (i < findCount)
+            {
+                String suffix = "_"+Integer.toString(i++);
+                // Only add the name/value if the item was not deleted.
+                String findParameterOp = variableContext.getParameter("findop"+suffix);
+                if (findParameterOp == null || !findParameterOp.equals("Delete"))
+                {
+                    String findParameterName = variableContext.getParameter("findname"+suffix);
+                    String findParameterValue = variableContext.getParameter("findvalue"+suffix);
+                    addFindParameterNode(ds,findParameterName,findParameterValue);
+                }
+            }
+        }
+
+        // Now, look for a global "Add" operation
+        String operation = variableContext.getParameter("findop");
+        if (operation != null && operation.equals("Add"))
+        {
+            // Pick up the global parameter name and value
+            String findParameterName = variableContext.getParameter("findname");
+            String findParameterValue = variableContext.getParameter("findvalue");
+            addFindParameterNode(ds,findParameterName,findParameterValue);
+        }
+
+        return null;
+    }*/
+
+
+    /** Process form post for Metadata tab.
+     */
+    protected String processMetadataTab(IPostParameters variableContext, DocumentSpecification ds)
+            throws ManifoldCFException
+    {
+        // Remove old included metadata nodes
+        removeNodes(ds, EmailConfig.NODE_METADATA);
+
+        // Get the posted metadata values
+        String[] metadataNames = variableContext.getParameterValues("metadata");
+        if (metadataNames != null)
+        {
+            // Add each metadata name as a node to the document specification
+            int i = 0;
+            while (i < metadataNames.length)
+            {
+                String metadataName = metadataNames[i++];
+                addIncludedMetadataNode(ds,metadataName);
+            }
+        }
+
+        return null;
+    }
+
+    protected static void removeNodes(DocumentSpecification ds,
+                                      String nodeTypeName)
+    {
+        int i = 0;
+        while (i < ds.getChildCount())
+        {
+            SpecificationNode sn = ds.getChild(i);
+            if (sn.getType().equals(nodeTypeName))
+                ds.removeChild(i);
+            else
+                i++;
+        }
+    }
+
+    protected static void addIncludedMetadataNode(DocumentSpecification ds,
+                                                  String metadataName)
+    {
+        // Build the proper node
+        SpecificationNode sn = new SpecificationNode(EmailConfig.NODE_METADATA);
+        sn.setAttribute(EmailConfig.ATTRIBUTE_NAME,metadataName);
+        // Add to the end
+        ds.addChild(ds.getChildCount(),sn);
     }
 }
