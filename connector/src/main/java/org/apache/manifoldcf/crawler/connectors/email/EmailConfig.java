@@ -58,11 +58,15 @@ public class EmailConfig {
 
     public static final String NODE_PROPERTIES = "properties";
     public static final String NODE_METADATA = "metadata";
+    public static final String NODE_FILTER = "filter";
     public static final String SERVER_PROPERTY = "serverproperty";
     public static final String VALUE = "p_value";
     public static final String ATTRIBUTE_NAME = "name";
 
     public static final String ATTRIBUTE_VALUE = "value";
     public static final String[] BASIC_METADATA = {"To","From","Subject","Body","Date","Encoding of Attachment","MIME type of attachment"};
+    public static final String[] BASIC_SEARCHABLE_ATTRIBUTES = {"To","From","Subject","Body","Date","Folder"};
+
+
 
 }
