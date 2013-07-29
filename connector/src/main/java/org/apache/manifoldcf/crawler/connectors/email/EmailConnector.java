@@ -305,9 +305,9 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             throws ManifoldCFException, IOException
     {
         // Add the tabs
-        //tabsArray.add("Specification");
         tabsArray.add("Metadata");
-        outputResource("SpecificationHeader.js",out,locale,null);
+        tabsArray.add("Filter");
+        outputResource("SpecificationHeader.js", out, locale, null);
     }
 
     /** Output the specification body section.
@@ -326,10 +326,9 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                         DocumentSpecification ds, String tabName)
             throws ManifoldCFException, IOException
     {
-        // Do the "Documents" tab
-        //outputDocumentsTab(out,locale,ds,tabName);
-        // Do the "Metadata" tab
+        outputFilterTab(out,locale,ds,tabName);
         outputMetadataTab(out,locale,ds,tabName);
+
     }
 
     /** Take care of "Metadata" tab.
@@ -342,7 +341,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         paramMap.put("TabName",tabName);
         fillInMetadataTab(paramMap, ds);
         fillInMetadataAttributes(paramMap);
-        outputResource("SpecificationMetadata.html",out,locale,paramMap);
+        outputResource("SpecificationMetadata.html", out, locale, paramMap);
     }
 
     /** Fill in Velocity context for Metadata tab.
@@ -372,6 +371,43 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             paramMap.put("metadataattributes",matchNames);
     }
 
+    protected void outputFilterTab(IHTTPOutput out, Locale locale,
+                                      DocumentSpecification ds, String tabName)
+            throws ManifoldCFException, IOException
+    {
+        Map<String,Object> paramMap = new HashMap<String,Object>();
+        paramMap.put("TabName",tabName);
+        fillInFilterTab(paramMap, ds);
+        fillInSearchableAttributes(paramMap);
+        outputResource("SpecificationFilter.html", out, locale, paramMap);
+    }
+
+    private void fillInSearchableAttributes(Map<String, Object> paramMap) {
+        String[] attributes = EmailConfig.BASIC_SEARCHABLE_ATTRIBUTES;
+        paramMap.put("searchableattributes",attributes);
+    }
+
+    protected static void fillInFilterTab(Map<String,Object> paramMap,
+                                             DocumentSpecification ds)
+    {
+        List<Map<String,String>> list = new ArrayList<Map<String,String>>();
+        int i = 0;
+        while (i < ds.getChildCount())
+        {
+            SpecificationNode sn = ds.getChild(i++);
+            if (sn.getType().equals(EmailConfig.NODE_FILTER))
+            {
+
+                String findParameterName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                String findParameterValue = sn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
+                Map<String,String> row = new HashMap<String,String>();
+                row.put("name",findParameterName);
+                row.put("value",findParameterValue);
+                list.add(row);
+            }
+        }
+        paramMap.put("matches",list);
+    }
     /** Process a specification post.
      * This method is called at the start of job's edit or view page, whenever there is a possibility that form
      * data for a connection has been posted.  Its purpose is to gather form information and modify the
@@ -384,32 +420,28 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     @Override
     public String processSpecificationPost(IPostParameters variableContext, DocumentSpecification ds)
-            throws ManifoldCFException
-    {
-        // Pick up the Documents tab data
-        //String rval = processDocumentsTab(variableContext,ds);
-        //if (rval != null)
-        //    return rval;
-        // Pick up the Metadata tab data
-        String rval = processMetadataTab(variableContext,ds);
-        return rval;
+            throws ManifoldCFException     {
+
+        String result = processFilterTab(variableContext,ds);
+        if (result != null)
+            return result;
+        result =  processMetadataTab(variableContext,ds);
+        return result;
     }
 
     /** Process form post for Documents tab.
      */
-    /*protected String processDocumentsTab(IPostParameters variableContext, DocumentSpecification ds)
+    protected String processFilterTab(IPostParameters variableContext, DocumentSpecification ds)
             throws ManifoldCFException
     {
         // Remove old find parameter document specification information
-        removeNodes(ds,NODE_FIND_PARAMETER);
+        removeNodes(ds,EmailConfig.NODE_FILTER);
 
-        // Parse the number of records that were posted
         String findCountString = variableContext.getParameter("findcount");
         if (findCountString != null)
         {
             int findCount = Integer.parseInt(findCountString);
 
-            // Loop throught them and add to the new document specification information
             int i = 0;
             while (i < findCount)
             {
@@ -425,18 +457,16 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             }
         }
 
-        // Now, look for a global "Add" operation
         String operation = variableContext.getParameter("findop");
         if (operation != null && operation.equals("Add"))
         {
-            // Pick up the global parameter name and value
             String findParameterName = variableContext.getParameter("findname");
             String findParameterValue = variableContext.getParameter("findvalue");
             addFindParameterNode(ds,findParameterName,findParameterValue);
         }
 
         return null;
-    }*/
+    }
 
 
     /** Process form post for Metadata tab.
@@ -485,5 +515,31 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         sn.setAttribute(EmailConfig.ATTRIBUTE_NAME,metadataName);
         // Add to the end
         ds.addChild(ds.getChildCount(),sn);
+    }
+    private void addFindParameterNode(DocumentSpecification ds, String findParameterName, String findParameterValue) {
+        SpecificationNode sn = new SpecificationNode(EmailConfig.NODE_FILTER);
+        sn.setAttribute(EmailConfig.ATTRIBUTE_NAME,findParameterName);
+        sn.setAttribute(EmailConfig.ATTRIBUTE_VALUE,findParameterValue);
+        // Add to the end
+        ds.addChild(ds.getChildCount(),sn);
+    }
+
+    /** View specification.
+     * This method is called in the body section of a job's view page.  Its purpose is to present the document
+     * specification information to the user.  The coder can presume that the HTML that is output from
+     * this configuration will be within appropriate <html> and <body> tags.
+     * The connector will be connected before this method can be called.
+     *@param out is the output to which any HTML should be sent.
+     *@param locale is the desired locale.
+     *@param ds is the current document specification for this job.
+     */
+    @Override
+    public void viewSpecification(IHTTPOutput out, Locale locale, DocumentSpecification ds)
+            throws ManifoldCFException, IOException
+    {
+        Map<String,Object> paramMap = new HashMap<String,Object>();
+        fillInFilterTab(paramMap,ds);
+        fillInMetadataTab(paramMap,ds);
+        outputResource("SpecificationView.html",out,locale,paramMap);
     }
 }
