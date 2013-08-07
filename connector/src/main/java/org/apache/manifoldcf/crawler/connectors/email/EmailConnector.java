@@ -66,13 +66,86 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     protected final static long SESSION_EXPIRATION_MILLISECONDS = 300000L;
 
-
     // Local variables.
 
-    /**
-     * The email server
+    protected String server = null;
+    protected String port = null;
+    protected String username = null;
+    protected String password = null;
+    protected String protocol = null;
+    protected Map<String,String> properties = null;
+
+
+    //////////////////////////////////Start of Basic Connector Methods/////////////////////////
+
+    /** Connect.
+     *@param configParameters is the set of configuration parameters, which
+     * in this case describe the root directory.
      */
-    protected String hostServer = null;
+    @Override
+    public void connect(ConfigParams configParameters)
+    {
+        this.server = configParameters.getParameter(EmailConfig.SERVER_PARAM);
+        this.port = configParameters.getParameter(EmailConfig.PORT_PARAM);
+        this.protocol = configParameters.getParameter(EmailConfig.PROTOCOL_PARAM);
+        this.username = configParameters.getParameter(EmailConfig.USERNAME_PARAM);
+        this.password = configParameters.getParameter(EmailConfig.PASSWORD_PARAM);
+        int i=0;
+        while (i < configParameters.getChildCount())     //In post property set is added as a configuration node
+        {
+            ConfigNode cn = configParameters.getChild(i++);
+            if (cn.getType().equals(EmailConfig.NODE_PROPERTIES)) {
+                String findParameterName = cn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                String findParameterValue = cn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
+                this.properties.put(findParameterName,findParameterValue);
+            }
+        }
+    }
+
+    /** Close the connection.  Call this before discarding this instance of the
+     * repository connector.
+     */
+    @Override
+    public void disconnect()
+            throws ManifoldCFException
+    {
+        this.server = null;
+        this.port = null;
+        this.protocol = null;
+        this.username = null;
+        this.password = null;
+        this.properties = null;
+        super.disconnect();
+    }
+    /** This method is periodically called for all connectors that are connected but not
+     * in active use.
+     */
+    @Override
+    public void poll()
+            throws ManifoldCFException
+    {
+        //TODO
+        super.poll();
+    }
+
+    /** Test the connection.  Returns a string describing the connection integrity.
+     *@return the connection's status as a displayable string.
+     */
+    public String check()
+            throws ManifoldCFException{
+        //TODO
+        return super.check();
+    }
+    ///////////////////////////////End of Basic Connector Methods////////////////////////////////////////
+
+    //////////////////////////////Start of Repository Connector Method///////////////////////////////////
+
+
+
+
+
+
+    //////////////////////////////End of Repository Connector Method///////////////////////////////////
 
 
     ///////////////////////////////////////Start of Configuration UI/////////////////////////////////////
