@@ -66,7 +66,14 @@ public class EmailConfig {
     public static final String ATTRIBUTE_VALUE = "value";
     public static final String[] BASIC_METADATA = {"To","From","Subject","Body","Date","Encoding of Attachment","MIME type of attachment"};
     public static final String[] BASIC_SEARCHABLE_ATTRIBUTES = {"To","From","Subject","Body","Date","Folder"};
+    protected final static String ACTIVITY_FETCH = "fetch";
 
 
-
+    public static final String RELATIONSHIP_CHILD = "child";
+    public static final String PROTOCOL_IMAP = "IMAP";
+    public static final String FOLDER_INBOX = "INBOX";
+    public static final String EMAIL_SUBJECT = "subject";
+    public static final String EMAIL_FROM = "from";
+    public static final String EMAIL_TO = "to";
+    public static final String EMAIL_BODY = "body";
 }

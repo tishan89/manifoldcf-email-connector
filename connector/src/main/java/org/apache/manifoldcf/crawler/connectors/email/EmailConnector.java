@@ -19,11 +19,16 @@
 package org.apache.manifoldcf.crawler.connectors.email;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.manifoldcf.agents.interfaces.ServiceInterruption;
 import org.apache.manifoldcf.core.interfaces.*;
 import org.apache.manifoldcf.crawler.interfaces.*;
+import org.apache.manifoldcf.crawler.system.Logging;
 
 import java.io.*;
 import java.util.*;
+import javax.mail.*;
+import javax.mail.internet.MimeMessage;
+import javax.mail.search.*;
 
 /**
  * This interface describes an instance of a connection between a repository and ManifoldCF's
@@ -141,8 +146,169 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     //////////////////////////////Start of Repository Connector Method///////////////////////////////////
 
 
+    public int getConnectorModel()
+    {
+        return MODEL_ADD;                       //Change is not applicable in context of email
+    }
 
+    /**
+     * Return the list of activities that this connector supports (i.e. writes into the log).
+     * @return the list.
+     */
+    public String[] getActivitiesList()
+    {
+        return new String[]{EmailConfig.ACTIVITY_FETCH};
+    }
 
+    /**
+     * Return the list of relationship types that this connector recognizes.
+     *
+     * @return the list.
+     */
+    public String[] getRelationshipTypes()
+    {
+        String[] relationships = new String[1];
+        relationships[0]=EmailConfig.RELATIONSHIP_CHILD;
+        return relationships;
+    }
+
+    /** Get the bin name strings for a document identifier.  The bin name describes the queue to which the
+     * document will be assigned for throttling purposes.  Throttling controls the rate at which items in a
+     * given queue are fetched; it does not say anything about the overall fetch rate, which may operate on
+     * multiple queues or bins.
+     * For example, if you implement a web crawler, a good choice of bin name would be the server name, since
+     * that is likely to correspond to a real resource that will need real throttle protection.
+     *@param documentIdentifier is the document identifier.
+     *@return the set of bin names.  If an empty array is returned, it is equivalent to there being no request
+     * rate throttling available for this identifier.
+     */
+    public String[] getBinNames(String documentIdentifier)
+    {
+        return new String[]{server};
+    }
+
+    /**
+     * Get the maximum number of documents to amalgamate together into one batch, for this connector.
+     * @return the maximum number. 0 indicates "unlimited".
+     */
+    public int getMaxDocumentRequest()
+    {
+        return 1;
+    }
+
+    /** Queue "seed" documents.  Seed documents are the starting places for crawling activity.  Documents
+     * are seeded when this method calls appropriate methods in the passed in ISeedingActivity object.
+     *
+     * This method can choose to find repository changes that happen only during the specified time interval.
+     * The seeds recorded by this method will be viewed by the framework based on what the
+     * getConnectorModel() method returns.
+     *
+     * It is not a big problem if the connector chooses to create more seeds than are
+     * strictly necessary; it is merely a question of overall work required.
+     *
+     * The times passed to this method may be interpreted for greatest efficiency.  The time ranges
+     * any given job uses with this connector will not overlap, but will proceed starting at 0 and going
+     * to the "current time", each time the job is run.  For continuous crawling jobs, this method will
+     * be called once, when the job starts, and at various periodic intervals as the job executes.
+     *
+     * When a job's specification is changed, the framework automatically resets the seeding start time to 0.  The
+     * seeding start time may also be set to 0 on each job run, depending on the connector model returned by
+     * getConnectorModel().
+     *
+     * Note that it is always ok to send MORE documents rather than less to this method.
+     *@param activities is the interface this method should use to perform whatever framework actions are desired.
+     *@param spec is a document specification (that comes from the job).
+     *@param startTime is the beginning of the time range to consider, inclusive.
+     *@param endTime is the end of the time range to consider, exclusive.
+     *@param jobMode is an integer describing how the job is being run, whether continuous or once-only.
+     */
+    @Override
+    public void addSeedDocuments(ISeedingActivity activities,
+                                 DocumentSpecification spec, long startTime, long endTime, int jobMode)
+            throws ManifoldCFException, ServiceInterruption {
+        Session session = getSession();
+        int i = 0;
+        Map findMap;
+        while (i < spec.getChildCount())
+        {
+            SpecificationNode sn = spec.getChild(i++);
+            if (sn.getType().equals(EmailConfig.NODE_FILTER))
+            {
+                String findParameterName,findParameterValue;
+                findParameterName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                findParameterValue = sn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
+                findMap = new HashMap();
+                findMap.put(findParameterName,findParameterValue);
+                try {
+                    Message[] messages = findMessages(startTime,endTime,findMap);
+                    for(Message message : messages){
+                        String emailID = ((MimeMessage)message).getMessageID();
+                        activities.addSeedDocument(emailID);
+                    }
+                } catch (MessagingException e) {
+                    Logging.connectors.warn("Email: Error finding emails: "+e.getMessage(),e);
+                    throw new ManifoldCFException(e.getMessage(),e);
+                }
+
+            }
+
+        }
+    }
+
+    /*
+    This method will return the list of messages which matches the given criteria
+     */
+    private Message[] findMessages(long startTime, long endTime, Map findMap) throws MessagingException {
+        Message[] result;
+        String findParameterName;
+        String findParameterValue;
+        Store store = getSession().getStore(protocol);
+        store.connect(server, username, password);
+        Folder folder;
+        if (protocol == EmailConfig.PROTOCOL_IMAP) {
+            folder = store.getFolder(EmailConfig.FOLDER_INBOX);    //TODO Add the given folder
+        } else {
+            folder = store.getFolder(EmailConfig.FOLDER_INBOX);
+        }
+        Message[] temp = folder.getMessages((int) startTime, (int) endTime);
+        if (findMap.size() > 0) {
+            result = temp;
+            Iterator it = findMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                findParameterName = ((String) pair.getKey()).toLowerCase();
+                findParameterValue = (String) pair.getValue();
+                it.remove();
+                if (Logging.connectors.isDebugEnabled())
+                    Logging.connectors.debug("Email: Finding emails where " + findParameterName +
+                            "= '" + findParameterValue + "'");
+                if (findParameterName.equals(EmailConfig.EMAIL_SUBJECT)) {
+                    SubjectTerm subjectTerm = new SubjectTerm(findParameterValue);
+                    result = folder.search(subjectTerm, temp);
+                } else if (findParameterName.equals(EmailConfig.EMAIL_FROM)) {
+                    FromStringTerm fromTerm = new FromStringTerm(findParameterValue);
+                    result = folder.search(fromTerm, temp);
+                } else if (findParameterName.equals(EmailConfig.EMAIL_TO)) {
+                    RecipientStringTerm recipientTerm = new RecipientStringTerm(Message.RecipientType.TO, findParameterValue);
+                    result = folder.search(recipientTerm, temp);
+                } else if (findParameterName.equals(EmailConfig.EMAIL_BODY)) {
+                    BodyTerm bodyTerm = new BodyTerm(findParameterValue);
+                    result = folder.search(bodyTerm, temp);
+                }
+            }
+        } else {
+            result = temp;
+        }
+        return result;
+    }
+
+    private Session getSession() {
+        // Create empty properties
+        Properties props = new Properties();
+        // Get session
+        Session session = Session.getDefaultInstance(props, null);
+        return session;
+    }
 
 
     //////////////////////////////End of Repository Connector Method///////////////////////////////////
