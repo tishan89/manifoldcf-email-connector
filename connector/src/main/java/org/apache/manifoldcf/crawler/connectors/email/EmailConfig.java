@@ -52,7 +52,7 @@ public class EmailConfig {
      */
     public static final String PROPERTIES_PARAM = "properties";
 
-    public static final String PROTOCOL_DEFAULT_VALUE = "SMTP";
+    public static final String PROTOCOL_DEFAULT_VALUE = "IMAP";
     public static final String PORT_DEFAULT_VALUE = "25";
 
 
@@ -71,9 +71,17 @@ public class EmailConfig {
 
     public static final String RELATIONSHIP_CHILD = "child";
     public static final String PROTOCOL_IMAP = "IMAP";
+    public static final String PROTOCOL_IMAP_PROVIDER = "imaps";
+    public static final String PROTOCOL_POP3 = "POP3";
+    public static final String PROTOCOL_POP3_PROVIDER = "pop3";
     public static final String FOLDER_INBOX = "INBOX";
     public static final String EMAIL_SUBJECT = "subject";
     public static final String EMAIL_FROM = "from";
     public static final String EMAIL_TO = "to";
     public static final String EMAIL_BODY = "body";
+    public static final String ATTRIBUTE_FOLDER = "Folder";
+    public static final String EMAIL_DATE = "date";
+    public static final String EMAIL_ATTACHMENT_ENCODING = "encoding of attachment";
+    public static final String EMAIL_ATTACHMENT_MIMETYPE = "mime type of attachment";
+    //public static final String TO = "To";
 }

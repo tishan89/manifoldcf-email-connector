@@ -19,6 +19,7 @@
 package org.apache.manifoldcf.crawler.connectors.email;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.manifoldcf.agents.interfaces.RepositoryDocument;
 import org.apache.manifoldcf.agents.interfaces.ServiceInterruption;
 import org.apache.manifoldcf.core.interfaces.*;
 import org.apache.manifoldcf.crawler.interfaces.*;
@@ -27,6 +28,7 @@ import org.apache.manifoldcf.crawler.system.Logging;
 import java.io.*;
 import java.util.*;
 import javax.mail.*;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.search.*;
 
@@ -78,42 +80,46 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     protected String username = null;
     protected String password = null;
     protected String protocol = null;
-    protected Map<String,String> properties = null;
+    protected Map<String, String> properties = null;
+    private String folderName = null;
+    private Folder folder;
+    private Store store;
 
 
     //////////////////////////////////Start of Basic Connector Methods/////////////////////////
 
-    /** Connect.
-     *@param configParameters is the set of configuration parameters, which
-     * in this case describe the root directory.
+    /**
+     * Connect.
+     *
+     * @param configParameters is the set of configuration parameters, which
+     *                         in this case describe the root directory.
      */
     @Override
-    public void connect(ConfigParams configParameters)
-    {
+    public void connect(ConfigParams configParameters) {
         this.server = configParameters.getParameter(EmailConfig.SERVER_PARAM);
         this.port = configParameters.getParameter(EmailConfig.PORT_PARAM);
         this.protocol = configParameters.getParameter(EmailConfig.PROTOCOL_PARAM);
         this.username = configParameters.getParameter(EmailConfig.USERNAME_PARAM);
         this.password = configParameters.getParameter(EmailConfig.PASSWORD_PARAM);
-        int i=0;
+        int i = 0;
         while (i < configParameters.getChildCount())     //In post property set is added as a configuration node
         {
             ConfigNode cn = configParameters.getChild(i++);
             if (cn.getType().equals(EmailConfig.NODE_PROPERTIES)) {
                 String findParameterName = cn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
                 String findParameterValue = cn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
-                this.properties.put(findParameterName,findParameterValue);
+                this.properties.put(findParameterName, findParameterValue);
             }
         }
     }
 
-    /** Close the connection.  Call this before discarding this instance of the
+    /**
+     * Close the connection.  Call this before discarding this instance of the
      * repository connector.
      */
     @Override
     public void disconnect()
-            throws ManifoldCFException
-    {
+            throws ManifoldCFException {
         this.server = null;
         this.port = null;
         this.protocol = null;
@@ -122,22 +128,25 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         this.properties = null;
         super.disconnect();
     }
-    /** This method is periodically called for all connectors that are connected but not
+
+    /**
+     * This method is periodically called for all connectors that are connected but not
      * in active use.
      */
     @Override
     public void poll()
-            throws ManifoldCFException
-    {
+            throws ManifoldCFException {
         //TODO
         super.poll();
     }
 
-    /** Test the connection.  Returns a string describing the connection integrity.
-     *@return the connection's status as a displayable string.
+    /**
+     * Test the connection.  Returns a string describing the connection integrity.
+     *
+     * @return the connection's status as a displayable string.
      */
     public String check()
-            throws ManifoldCFException{
+            throws ManifoldCFException {
         //TODO
         return super.check();
     }
@@ -146,17 +155,16 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     //////////////////////////////Start of Repository Connector Method///////////////////////////////////
 
 
-    public int getConnectorModel()
-    {
+    public int getConnectorModel() {
         return MODEL_ADD;                       //Change is not applicable in context of email
     }
 
     /**
      * Return the list of activities that this connector supports (i.e. writes into the log).
+     *
      * @return the list.
      */
-    public String[] getActivitiesList()
-    {
+    public String[] getActivitiesList() {
         return new String[]{EmailConfig.ACTIVITY_FETCH};
     }
 
@@ -165,89 +173,97 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      *
      * @return the list.
      */
-    public String[] getRelationshipTypes()
-    {
+    public String[] getRelationshipTypes() {
         String[] relationships = new String[1];
-        relationships[0]=EmailConfig.RELATIONSHIP_CHILD;
+        relationships[0] = EmailConfig.RELATIONSHIP_CHILD;
         return relationships;
     }
 
-    /** Get the bin name strings for a document identifier.  The bin name describes the queue to which the
+    /**
+     * Get the bin name strings for a document identifier.  The bin name describes the queue to which the
      * document will be assigned for throttling purposes.  Throttling controls the rate at which items in a
      * given queue are fetched; it does not say anything about the overall fetch rate, which may operate on
      * multiple queues or bins.
      * For example, if you implement a web crawler, a good choice of bin name would be the server name, since
      * that is likely to correspond to a real resource that will need real throttle protection.
-     *@param documentIdentifier is the document identifier.
-     *@return the set of bin names.  If an empty array is returned, it is equivalent to there being no request
-     * rate throttling available for this identifier.
+     *
+     * @param documentIdentifier is the document identifier.
+     * @return the set of bin names.  If an empty array is returned, it is equivalent to there being no request
+     *         rate throttling available for this identifier.
      */
-    public String[] getBinNames(String documentIdentifier)
-    {
+    public String[] getBinNames(String documentIdentifier) {
         return new String[]{server};
     }
 
     /**
      * Get the maximum number of documents to amalgamate together into one batch, for this connector.
+     *
      * @return the maximum number. 0 indicates "unlimited".
      */
-    public int getMaxDocumentRequest()
-    {
+    public int getMaxDocumentRequest() {
         return 50;
     }
 
-    /** Queue "seed" documents.  Seed documents are the starting places for crawling activity.  Documents
+    /**
+     * Queue "seed" documents.  Seed documents are the starting places for crawling activity.  Documents
      * are seeded when this method calls appropriate methods in the passed in ISeedingActivity object.
-     *
+     * <p/>
      * This method can choose to find repository changes that happen only during the specified time interval.
      * The seeds recorded by this method will be viewed by the framework based on what the
      * getConnectorModel() method returns.
-     *
+     * <p/>
      * It is not a big problem if the connector chooses to create more seeds than are
      * strictly necessary; it is merely a question of overall work required.
-     *
+     * <p/>
      * The times passed to this method may be interpreted for greatest efficiency.  The time ranges
      * any given job uses with this connector will not overlap, but will proceed starting at 0 and going
      * to the "current time", each time the job is run.  For continuous crawling jobs, this method will
      * be called once, when the job starts, and at various periodic intervals as the job executes.
-     *
+     * <p/>
      * When a job's specification is changed, the framework automatically resets the seeding start time to 0.  The
      * seeding start time may also be set to 0 on each job run, depending on the connector model returned by
      * getConnectorModel().
-     *
+     * <p/>
      * Note that it is always ok to send MORE documents rather than less to this method.
-     *@param activities is the interface this method should use to perform whatever framework actions are desired.
-     *@param spec is a document specification (that comes from the job).
-     *@param startTime is the beginning of the time range to consider, inclusive.
-     *@param endTime is the end of the time range to consider, exclusive.
-     *@param jobMode is an integer describing how the job is being run, whether continuous or once-only.
+     *
+     * @param activities is the interface this method should use to perform whatever framework actions are desired.
+     * @param spec       is a document specification (that comes from the job).
+     * @param startTime  is the beginning of the time range to consider, inclusive.
+     * @param endTime    is the end of the time range to consider, exclusive.
+     * @param jobMode    is an integer describing how the job is being run, whether continuous or once-only.
      */
     @Override
     public void addSeedDocuments(ISeedingActivity activities,
                                  DocumentSpecification spec, long startTime, long endTime, int jobMode)
             throws ManifoldCFException, ServiceInterruption {
         Session session = getSession();
-        int i = 0;
+        int i = 0, j = 0;
         Map findMap;
-        while (i < spec.getChildCount())
-        {
+        while (i < spec.getChildCount()) {
             SpecificationNode sn = spec.getChild(i++);
-            if (sn.getType().equals(EmailConfig.NODE_FILTER))
-            {
-                String findParameterName,findParameterValue;
+            if (sn.getType().equals(EmailConfig.NODE_FILTER) && sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME).equals(EmailConfig.ATTRIBUTE_FOLDER)) {
+                folderName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
+            }
+        }
+        while (i < spec.getChildCount()) {
+            SpecificationNode sn = spec.getChild(i++);
+            if (sn.getType().equals(EmailConfig.NODE_FILTER)) {
+                String findParameterName, findParameterValue;
                 findParameterName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
                 findParameterValue = sn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
                 findMap = new HashMap();
-                findMap.put(findParameterName,findParameterValue);
+                findMap.put(findParameterName, findParameterValue);
                 try {
-                    Message[] messages = findMessages(startTime,endTime,findMap);
-                    for(Message message : messages){
-                        String emailID = ((MimeMessage)message).getMessageID();
+                    Message[] messages = findMessages(startTime, endTime, findMap);
+                    for (Message message : messages) {
+                        String emailID = ((MimeMessage) message).getMessageID();
                         activities.addSeedDocument(emailID);
                     }
                 } catch (MessagingException e) {
-                    Logging.connectors.warn("Email: Error finding emails: "+e.getMessage(),e);
-                    throw new ManifoldCFException(e.getMessage(),e);
+                    Logging.connectors.warn("Email: Error finding emails: " + e.getMessage(), e);
+                    throw new ManifoldCFException(e.getMessage(), e);
+                } finally {
+                    finalizeConnection();
                 }
 
             }
@@ -262,14 +278,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         Message[] result;
         String findParameterName;
         String findParameterValue;
-        Store store = getSession().getStore(protocol);
-        store.connect(server, username, password);
-        Folder folder;
-        if (protocol == EmailConfig.PROTOCOL_IMAP) {
-            folder = store.getFolder(EmailConfig.FOLDER_INBOX);    //TODO Add the given folder
-        } else {
-            folder = store.getFolder(EmailConfig.FOLDER_INBOX);
-        }
+        initializeConnection();
         Message[] temp = folder.getMessages((int) startTime, (int) endTime);
         if (findMap.size() > 0) {
             result = temp;
@@ -299,6 +308,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         } else {
             result = temp;
         }
+
         return result;
     }
 
@@ -310,37 +320,196 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         return session;
     }
 
-    /** Get document versions given an array of document identifiers.
+    private void initializeConnection() throws MessagingException {
+        store = getSession().getStore(protocol);
+        store.connect(server, username, password);
+
+        if (protocol == EmailConfig.PROTOCOL_IMAP_PROVIDER) {
+            folder = store.getFolder(folderName);
+        } else {
+            folder = store.getFolder(EmailConfig.FOLDER_INBOX);
+        }
+        folder.open(Folder.READ_ONLY);
+    }
+
+    private void finalizeConnection() {
+        try {
+            if (folder != null)
+                folder.close(false);
+            if (store != null)
+                store.close();
+        } catch (MessagingException e) {
+            if (Logging.connectors.isDebugEnabled())
+                Logging.connectors.debug("Error while closing connection to server" + e.getMessage());
+        } finally {
+            folder = null;
+            store = null;
+        }
+    }
+
+    /**
+     * Get document versions given an array of document identifiers.
      * This method is called for EVERY document that is considered. It is therefore important to perform
      * as little work as possible here.
      * The connector will be connected before this method can be called.
-     *@param documentIdentifiers is the array of local document identifiers, as understood by this connector.
-     *@param oldVersions is the corresponding array of version strings that have been saved for the document identifiers.
-     *   A null value indicates that this is a first-time fetch, while an empty string indicates that the previous document
-     *   had an empty version string.
-     *@param activities is the interface this method should use to perform whatever framework actions are desired.
-     *@param spec is the current document specification for the current job.  If there is a dependency on this
-     * specification, then the version string should include the pertinent data, so that reingestion will occur
-     * when the specification changes.  This is primarily useful for metadata.
-     *@param jobMode is an integer describing how the job is being run, whether continuous or once-only.
-     *@param usesDefaultAuthority will be true only if the authority in use for these documents is the default one.
-     *@return the corresponding version strings, with null in the places where the document no longer exists.
-     * Empty version strings indicate that there is no versioning ability for the corresponding document, and the document
-     * will always be processed.
+     *
+     * @param documentIdentifiers  is the array of local document identifiers, as understood by this connector.
+     * @param oldVersions          is the corresponding array of version strings that have been saved for the document identifiers.
+     *                             A null value indicates that this is a first-time fetch, while an empty string indicates that the previous document
+     *                             had an empty version string.
+     * @param activities           is the interface this method should use to perform whatever framework actions are desired.
+     * @param spec                 is the current document specification for the current job.  If there is a dependency on this
+     *                             specification, then the version string should include the pertinent data, so that reingestion will occur
+     *                             when the specification changes.  This is primarily useful for metadata.
+     * @param jobMode              is an integer describing how the job is being run, whether continuous or once-only.
+     * @param usesDefaultAuthority will be true only if the authority in use for these documents is the default one.
+     * @return the corresponding version strings, with null in the places where the document no longer exists.
+     *         Empty version strings indicate that there is no versioning ability for the corresponding document, and the document
+     *         will always be processed.
      */
     @Override
     public String[] getDocumentVersions(String[] documentIdentifiers, String[] oldVersions, IVersionActivity activities,
                                         DocumentSpecification spec, int jobMode, boolean usesDefaultAuthority)
-            throws ManifoldCFException, ServiceInterruption
-    {
+            throws ManifoldCFException, ServiceInterruption {
         String[] result = new String[documentIdentifiers.length];
-        for(String value:result){
+        for (String value : result) {
             value = StringUtils.EMPTY;                          //Since visioning is not applicable in the current context.
         }
         return result;
     }
 
+    /**
+     * Process a set of documents.
+     * This is the method that should cause each document to be fetched, processed, and the results either added
+     * to the queue of documents for the current job, and/or entered into the incremental ingestion manager.
+     * The document specification allows this class to filter what is done based on the job.
+     * The connector will be connected before this method can be called.
+     *
+     * @param documentIdentifiers is the set of document identifiers to process.
+     * @param versions            is the corresponding document versions to process, as returned by getDocumentVersions() above.
+     *                            The implementation may choose to ignore this parameter and always process the current version.
+     * @param activities          is the interface this method should use to queue up new document references
+     *                            and ingest documents.
+     * @param spec                is the document specification.
+     * @param scanOnly            is an array corresponding to the document identifiers.  It is set to true to indicate when the processing
+     *                            should only find other references, and should not actually call the ingestion methods.
+     * @param jobMode             is an integer describing how the job is being run, whether continuous or once-only.
+     */
+    @Override
+    public void processDocuments(String[] documentIdentifiers, String[] versions, IProcessActivity activities,
+                                 DocumentSpecification spec, boolean[] scanOnly, int jobMode)
+            throws ManifoldCFException, ServiceInterruption {
+        int i = 0;
+        List<String> requiredMetadata = new ArrayList<>();
+        try {
+            initializeConnection();
 
+            while (i < spec.getChildCount()) {
+                SpecificationNode sn = spec.getChild(i++);
+                if (sn.getType().equals(EmailConfig.NODE_METADATA)) {
+                    String metadataAttribute = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
+                    requiredMetadata.add(metadataAttribute);
+                }
+            }
+            for (String id : documentIdentifiers) {
+                long startTime = System.currentTimeMillis();
+                String msgId = documentIdentifiers[i];
+                InputStream is = null;
+                if (Logging.connectors.isDebugEnabled())
+                    Logging.connectors.debug("Email: Processing document identifier '"
+                            + msgId + "'");
+                MessageIDTerm messageIDTerm = new MessageIDTerm(id);
+                Message[] message = null;
+
+                message = folder.search(messageIDTerm);
+                for (Message msg : message) {
+                    RepositoryDocument rd = new RepositoryDocument();
+                    Date setDate = msg.getSentDate();
+                    rd.setFileName(msg.getFileName());
+                    is = msg.getInputStream();
+                    rd.setBinary(is, msg.getSize());
+
+                    for (String metadata : requiredMetadata) {
+                        if (metadata.toLowerCase().equals(EmailConfig.EMAIL_TO)) {
+                            Address[] to = msg.getRecipients(Message.RecipientType.TO);
+                            String[] toStr = new String[to.length];
+                            int j = 0;
+                            for (Address address : to) {
+                                toStr[j] = address.toString();
+                            }
+                            rd.addField(EmailConfig.EMAIL_TO, toStr);
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_FROM)) {
+                            Address[] from = msg.getFrom();
+                            String[] fromStr = new String[from.length];
+                            int j = 0;
+                            for (Address address : from) {
+                                fromStr[j] = address.toString();
+                            }
+                            rd.addField(EmailConfig.EMAIL_TO, fromStr);
+
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_SUBJECT)) {
+                            String subject = msg.getSubject();
+                            rd.addField(EmailConfig.EMAIL_SUBJECT, subject);
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_BODY)) {
+                            Multipart mp = (Multipart) msg.getContent();
+                            for (int j = 0, n = mp.getCount(); i < n; i++) {
+                                Part part = mp.getBodyPart(i);
+                                String disposition = part.getDisposition();
+                                if ((disposition == null)) {
+                                    MimeBodyPart mbp = (MimeBodyPart) part;
+                                    if (mbp.isMimeType("text/plain")) {
+                                        rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString());
+                                    } else if (mbp.isMimeType("text/html")) {
+                                        rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString()); //TODO handle html accordingly
+                                    }
+                                }
+                            }
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_DATE)) {
+                            Date sentDate = msg.getSentDate();
+                            rd.addField("Date", sentDate.toString());
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_ENCODING)) {
+                            Multipart mp = (Multipart) msg.getContent();
+                            String[] encoding = new String[mp.getCount()];
+                            for (int k = 0, n = mp.getCount(); i < n; i++) {
+                                Part part = mp.getBodyPart(i);
+                                String disposition = part.getDisposition();
+                                if ((disposition != null) &&
+                                        ((disposition.equals(Part.ATTACHMENT) ||
+                                                (disposition.equals(Part.INLINE))))) {
+                                    encoding[k] = part.getFileName().split("\\?")[1];
+
+                                }
+                            }
+                            rd.addField("Encoding", encoding);
+                        } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_MIMETYPE)) {
+                            Multipart mp = (Multipart) msg.getContent();
+                            String[] MIMEType = new String[mp.getCount()];
+                            for (int k = 0, n = mp.getCount(); i < n; i++) {
+                                Part part = mp.getBodyPart(i);
+                                String disposition = part.getDisposition();
+                                if ((disposition != null) &&
+                                        ((disposition.equals(Part.ATTACHMENT) ||
+                                                (disposition.equals(Part.INLINE))))) {
+                                    MIMEType[k] = part.getContentType();
+
+                                }
+                            }
+                            rd.addField("MIME Type", MIMEType);
+                        }
+                    }
+                    activities.ingestDocument(id, StringUtils.EMPTY, "TODO", rd);  //TODO
+
+                }
+            }
+
+        } catch (MessagingException e) {
+
+        } catch (IOException e) {
+            throw new ManifoldCFException(e.getMessage(), e,
+                    ManifoldCFException.INTERRUPTED);
+        }
+
+    }
 
     //////////////////////////////End of Repository Connector Methods///////////////////////////////////
 
@@ -456,7 +625,11 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             parameters.setParameter(EmailConfig.PASSWORD_PARAM, password);
         String protocol = variableContext.getParameter(EmailConfig.PROTOCOL_PARAM);
         if (protocol != null)
-            parameters.setParameter(EmailConfig.PROTOCOL_PARAM, protocol);
+            if (protocol.equals(EmailConfig.PROTOCOL_IMAP))
+                protocol = EmailConfig.PROTOCOL_IMAP_PROVIDER;
+        if (protocol.equals(EmailConfig.PROTOCOL_POP3))
+            protocol = EmailConfig.PROTOCOL_POP3_PROVIDER;
+        parameters.setParameter(EmailConfig.PROTOCOL_PARAM, protocol);
         String server = variableContext.getParameter(EmailConfig.SERVER_PARAM);
         if (server != null)
             parameters.setParameter(EmailConfig.SERVER_PARAM, server);

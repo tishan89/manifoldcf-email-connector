@@ -31,18 +31,12 @@
         </td>
         <td class="value">
             <select id="protocol" name="protocol">
-                #if($PROTOCOL == 'IMAP')
-                <option value="imap" selected="selected">IMAP</option>
-                <option value="pop3">POP3</option>
-                <option value="smtp">SMTP</option>
-                #elseif($PROTOCOL == 'POP3')
+                #if($PROTOCOL == 'POP3')
                 <option value="imap">IMAP</option>
                 <option value="pop3" selected="selected">POP3</option>
-                <option value="smtp">SMTP</option>
                 #else
-                <option value="imap">IMAP</option>
+                <option value="imap" selected="selected">IMAP</option>
                 <option value="pop3">POP3</option>
-                <option value="smtp" selected="selected">SMTP</option>
                 #end
             </select>
         </td>
