@@ -614,22 +614,31 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      *         connection (and cause a redirection to an error page).
      */
     @Override
-    public String processConfigurationPost(IThreadContext threadContext, IPostParameters variableContext,
-                                           ConfigParams parameters)
-            throws ManifoldCFException {
-        String userName = variableContext.getParameter(EmailConfig.USERNAME_PARAM);
+    public String processConfigurationPost(IThreadContext threadContext, IPostParameters variableContext, 
+        ConfigParams parameters) throws ManifoldCFException {
+        
+      String userName = variableContext.getParameter(EmailConfig.USERNAME_PARAM);
         if (userName != null)
             parameters.setParameter(EmailConfig.USERNAME_PARAM, userName);
+        
         String password = variableContext.getParameter(EmailConfig.PASSWORD_PARAM);
         if (password != null)
             parameters.setParameter(EmailConfig.PASSWORD_PARAM, password);
+        
         String protocol = variableContext.getParameter(EmailConfig.PROTOCOL_PARAM);
-        if (protocol != null)
-            if (protocol.equals(EmailConfig.PROTOCOL_IMAP))
+        if (protocol != null) {
+            
+          if (protocol.equals(EmailConfig.PROTOCOL_IMAP)){
                 protocol = EmailConfig.PROTOCOL_IMAP_PROVIDER;
-        if (protocol.equals(EmailConfig.PROTOCOL_POP3))
-            protocol = EmailConfig.PROTOCOL_POP3_PROVIDER;
-        parameters.setParameter(EmailConfig.PROTOCOL_PARAM, protocol);
+            }
+            
+            if (protocol.equals(EmailConfig.PROTOCOL_POP3)){
+                protocol = EmailConfig.PROTOCOL_POP3_PROVIDER;
+            }
+            
+            parameters.setParameter(EmailConfig.PROTOCOL_PARAM, protocol);
+        }
+        
         String server = variableContext.getParameter(EmailConfig.SERVER_PARAM);
         if (server != null)
             parameters.setParameter(EmailConfig.SERVER_PARAM, server);
