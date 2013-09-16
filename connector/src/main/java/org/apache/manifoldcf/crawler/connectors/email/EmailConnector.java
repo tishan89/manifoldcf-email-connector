@@ -84,6 +84,12 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     private String folderName = null;
     private Folder folder;
     private Store store;
+    
+    private static final String EMAIL_VERSION = "1.0";
+    private static final String MIMETYPE_TEXT_PLAIN = "text/plain";
+    private static final String MIMETYPE_HTML = "text/html";
+    private static final String ENCODING_FIELD = "encoding";
+    private static final String MIMETYPE_FIELD = "mimetype";
 
 
     //////////////////////////////////Start of Basic Connector Methods/////////////////////////
@@ -126,6 +132,15 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         this.username = null;
         this.password = null;
         this.properties = null;
+        
+        try {
+          this.store.close();
+        } catch (MessagingException e) {
+          Logging.connectors.error(
+              "Email: Error during disconnecting the connection.");
+          throw new ManifoldCFException( "Email: Error during disconnecting the connection.");
+        }
+        
         super.disconnect();
     }
 
@@ -134,10 +149,24 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      * in active use.
      */
     @Override
-    public void poll()
-            throws ManifoldCFException {
-        //TODO
-        super.poll();
+    public void poll() throws ManifoldCFException {
+      while (true) {
+        try {
+            getSession();
+            Folder defaultFolder = store.getDefaultFolder();
+            if(defaultFolder == null){
+              Logging.connectors.error(
+                  "Email: Error during checking the connection.");
+              throw new ManifoldCFException( "Email: Error during checking the connection.");
+            }
+            store.close();
+          } catch (Exception e) {
+            Logging.connectors.error(
+                "Email: Error during checking the connection.");
+            throw new ManifoldCFException( "Email: Error during checking the connection.");
+          }
+          return;
+      }
     }
 
     /**
@@ -147,9 +176,37 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     public String check()
             throws ManifoldCFException {
-        //TODO
+      try {
+        checkConnection();
         return super.check();
+      } catch (ServiceInterruption e) {
+        return "Connection temporarily failed: " + e.getMessage();
+      } catch (ManifoldCFException e) {
+        return "Connection failed: " + e.getMessage();
+      }
     }
+    
+    protected void checkConnection() throws ManifoldCFException, ServiceInterruption {
+      while (true) {
+        try {
+            getSession();
+            Folder defaultFolder = store.getDefaultFolder();
+            if(defaultFolder == null){
+              Logging.connectors.error(
+                  "Alfresco: Error during checking the connection.");
+              throw new ManifoldCFException( "Alfresco: Error during checking the connection.");
+            }
+            
+          } catch (Exception e) {
+            Logging.connectors.error(
+                "Alfresco: Error during checking the connection.");
+            throw new ManifoldCFException( "Alfresco: Error during checking the connection.");
+          }
+          store=null;
+          return;
+      }
+    }
+    
     ///////////////////////////////End of Basic Connector Methods////////////////////////////////////////
 
     //////////////////////////////Start of Repository Connector Method///////////////////////////////////
@@ -372,8 +429,10 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                         DocumentSpecification spec, int jobMode, boolean usesDefaultAuthority)
             throws ManifoldCFException, ServiceInterruption {
         String[] result = new String[documentIdentifiers.length];
+        
+        //Since visioning is not applicable in the current context.
         for (String value : result) {
-            value = StringUtils.EMPTY;                          //Since visioning is not applicable in the current context.
+            value = EMAIL_VERSION;                          
         }
         return result;
     }
@@ -428,7 +487,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                     rd.setFileName(msg.getFileName());
                     is = msg.getInputStream();
                     rd.setBinary(is, msg.getSize());
-
+                    String subject = StringUtils.EMPTY;
                     for (String metadata : requiredMetadata) {
                         if (metadata.toLowerCase().equals(EmailConfig.EMAIL_TO)) {
                             Address[] to = msg.getRecipients(Message.RecipientType.TO);
@@ -448,7 +507,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                             rd.addField(EmailConfig.EMAIL_TO, fromStr);
 
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_SUBJECT)) {
-                            String subject = msg.getSubject();
+                            subject = msg.getSubject();
                             rd.addField(EmailConfig.EMAIL_SUBJECT, subject);
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_BODY)) {
                             Multipart mp = (Multipart) msg.getContent();
@@ -457,16 +516,16 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                 String disposition = part.getDisposition();
                                 if ((disposition == null)) {
                                     MimeBodyPart mbp = (MimeBodyPart) part;
-                                    if (mbp.isMimeType("text/plain")) {
+                                    if (mbp.isMimeType(MIMETYPE_TEXT_PLAIN)) {
                                         rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString());
-                                    } else if (mbp.isMimeType("text/html")) {
+                                    } else if (mbp.isMimeType(MIMETYPE_HTML)) {
                                         rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString()); //TODO handle html accordingly
                                     }
                                 }
                             }
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_DATE)) {
                             Date sentDate = msg.getSentDate();
-                            rd.addField("Date", sentDate.toString());
+                            rd.addField(EmailConfig.EMAIL_DATE, sentDate.toString());
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_ENCODING)) {
                             Multipart mp = (Multipart) msg.getContent();
                             String[] encoding = new String[mp.getCount()];
@@ -480,7 +539,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
 
                                 }
                             }
-                            rd.addField("Encoding", encoding);
+                            rd.addField(ENCODING_FIELD, encoding);
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_MIMETYPE)) {
                             Multipart mp = (Multipart) msg.getContent();
                             String[] MIMEType = new String[mp.getCount()];
@@ -494,10 +553,12 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
 
                                 }
                             }
-                            rd.addField("MIME Type", MIMEType);
+                            rd.addField(MIMETYPE_FIELD, MIMEType);
                         }
                     }
-                    activities.ingestDocument(id, StringUtils.EMPTY, "TODO", rd);  //TODO
+                    String documentURI = subject+messageIDTerm;
+                    String version = versions[i];
+                    activities.ingestDocument(id, version, documentURI, rd);
 
                 }
             }
