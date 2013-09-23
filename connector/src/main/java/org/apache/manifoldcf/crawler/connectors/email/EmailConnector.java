@@ -193,14 +193,14 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             Folder defaultFolder = store.getDefaultFolder();
             if(defaultFolder == null){
               Logging.connectors.error(
-                  "Alfresco: Error during checking the connection.");
-              throw new ManifoldCFException( "Alfresco: Error during checking the connection.");
+                  "Email: Error during checking the connection.");
+              throw new ManifoldCFException( "Email: Error during checking the connection.");
             }
             
           } catch (Exception e) {
             Logging.connectors.error(
-                "Alfresco: Error during checking the connection.");
-            throw new ManifoldCFException( "Alfresco: Error during checking the connection.");
+                "Email: Error during checking the connection.");
+            throw new ManifoldCFException( "Email: Error during checking the connection.");
           }
           store=null;
           return;
