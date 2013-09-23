@@ -519,7 +519,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                     if (mbp.isMimeType(MIMETYPE_TEXT_PLAIN)) {
                                         rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString());
                                     } else if (mbp.isMimeType(MIMETYPE_HTML)) {
-                                        rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString()); //TODO handle html accordingly
+                                        rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString()); //handle html accordingly. Returns content with html tags
                                     }
                                 }
                             }
@@ -568,6 +568,8 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         } catch (IOException e) {
             throw new ManifoldCFException(e.getMessage(), e,
                     ManifoldCFException.INTERRUPTED);
+        } finally {
+            finalizeConnection();
         }
 
     }
