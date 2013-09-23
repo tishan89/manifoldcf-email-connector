@@ -80,7 +80,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     protected String username = null;
     protected String password = null;
     protected String protocol = null;
-    protected Map<String, String> properties = null;
+    protected Map<String, String> properties = new HashMap<>();
     private String folderName = null;
     private Folder folder;
     private Store store;
