@@ -84,7 +84,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     private String folderName = null;
     private Folder folder;
     private Store store;
-    
+
     private static final String EMAIL_VERSION = "1.0";
     private static final String MIMETYPE_TEXT_PLAIN = "text/plain";
     private static final String MIMETYPE_HTML = "text/html";
@@ -133,15 +133,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         this.username = null;
         this.password = null;
         this.properties = null;
-        
-        try {
-          this.store.close();
-        } catch (MessagingException e) {
-          Logging.connectors.error(
-              "Email: Error during disconnecting the connection.");
-          throw new ManifoldCFException( "Email: Error during disconnecting the connection.");
-        }
-        
+        finalizeConnection();
         super.disconnect();
     }
 
@@ -151,23 +143,23 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     @Override
     public void poll() throws ManifoldCFException {
-      while (true) {
-        try {
-            getSession();
-            Folder defaultFolder = store.getDefaultFolder();
-            if(defaultFolder == null){
-              Logging.connectors.error(
-                  "Email: Error during checking the connection.");
-              throw new ManifoldCFException( "Email: Error during checking the connection.");
+        while (true) {
+            try {
+                getSession();
+                Folder defaultFolder = store.getDefaultFolder();
+                if (defaultFolder == null) {
+                    Logging.connectors.error(
+                            "Email: Error during checking the connection.");
+                    throw new ManifoldCFException("Email: Error during checking the connection.");
+                }
+                finalizeConnection();
+            } catch (Exception e) {
+                Logging.connectors.error(
+                        "Email: Error during checking the connection.");
+                throw new ManifoldCFException("Email: Error during checking the connection.");
             }
-            store.close();
-          } catch (Exception e) {
-            Logging.connectors.error(
-                "Email: Error during checking the connection.");
-            throw new ManifoldCFException( "Email: Error during checking the connection.");
-          }
-          return;
-      }
+            return;
+        }
     }
 
     /**
@@ -177,37 +169,38 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     public String check()
             throws ManifoldCFException {
-      try {
-        checkConnection();
-        return super.check();
-      } catch (ServiceInterruption e) {
-        return "Connection temporarily failed: " + e.getMessage();
-      } catch (ManifoldCFException e) {
-        return "Connection failed: " + e.getMessage();
-      }
-    }
-    
-    protected void checkConnection() throws ManifoldCFException, ServiceInterruption {
-      while (true) {
         try {
-            initializeConnection();
-            Folder defaultFolder = store.getDefaultFolder();
-            if(defaultFolder == null){
-              Logging.connectors.error(
-                  "Email: Error during checking the connection.");
-              throw new ManifoldCFException( "Email: Error during checking the connection.");
-            }
-            
-          } catch (Exception e) {
-            Logging.connectors.error(
-                "Email: Error during checking the connection.");
-            throw new ManifoldCFException( "Email: Error during checking the connection.");
-          }
-          store=null;
-          return;
-      }
+            checkConnection();
+            return super.check();
+        } catch (ServiceInterruption e) {
+            return "Connection temporarily failed: " + e.getMessage();
+        } catch (ManifoldCFException e) {
+            return "Connection failed: " + e.getMessage();
+        }
     }
-    
+
+    protected void checkConnection() throws ManifoldCFException, ServiceInterruption {
+        while (true) {
+            try {
+                store = getSession().getStore(protocol);
+                store.connect(server, username, password);
+                Folder defaultFolder = store.getDefaultFolder();
+                if (defaultFolder == null) {
+                    Logging.connectors.error(
+                            "Email: Error during checking the connection.");
+                    throw new ManifoldCFException("Email: Error during checking the connection.");
+                }
+
+            } catch (Exception e) {
+                Logging.connectors.error(
+                        "Email: Error during checking the connection.");
+                throw new ManifoldCFException("Email: Error during checking the connection.");
+            }
+            store = null;
+            return;
+        }
+    }
+
     ///////////////////////////////End of Basic Connector Methods////////////////////////////////////////
 
     //////////////////////////////Start of Repository Connector Method///////////////////////////////////
@@ -429,22 +422,22 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     public String[] getDocumentVersions(String[] documentIdentifiers, String[] oldVersions, IVersionActivity activities,
                                         DocumentSpecification spec, int jobMode, boolean usesDefaultAuthority)
             throws ManifoldCFException, ServiceInterruption {
-        
+
         String[] result = null;
-        if(documentIdentifiers.length>0){
-          result = new String[documentIdentifiers.length];
-          //Since visioning is not applicable in the current context.
-          if(result != null){
-            for (String value : result) {
-                value = EMAIL_VERSION;                          
+        if (documentIdentifiers.length > 0) {
+            result = new String[documentIdentifiers.length];
+            //Since visioning is not applicable in the current context.
+            if (result != null) {
+                for (String value : result) {
+                    value = EMAIL_VERSION;
+                }
             }
-          }
-          return result;
-          
+            return result;
+
         } else {
-          return new String[]{EMAIL_VERSION};
+            return new String[]{EMAIL_VERSION};
         }
-          
+
     }
 
     /**
@@ -538,19 +531,19 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                             rd.addField(EmailConfig.EMAIL_DATE, sentDate.toString());
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_ENCODING)) {
                             Multipart mp = (Multipart) msg.getContent();
-                              if(mp!=null){
-                              String[] encoding = new String[mp.getCount()];
-                              for (int k = 0, n = mp.getCount(); i < n; i++) {
-                                  Part part = mp.getBodyPart(i);
-                                  String disposition = part.getDisposition();
-                                  if ((disposition != null) &&
-                                          ((disposition.equals(Part.ATTACHMENT) ||
-                                                  (disposition.equals(Part.INLINE))))) {
-                                      encoding[k] = part.getFileName().split("\\?")[1];
-  
-                                  }
-                              }
-                              rd.addField(ENCODING_FIELD, encoding);
+                            if (mp != null) {
+                                String[] encoding = new String[mp.getCount()];
+                                for (int k = 0, n = mp.getCount(); i < n; i++) {
+                                    Part part = mp.getBodyPart(i);
+                                    String disposition = part.getDisposition();
+                                    if ((disposition != null) &&
+                                            ((disposition.equals(Part.ATTACHMENT) ||
+                                                    (disposition.equals(Part.INLINE))))) {
+                                        encoding[k] = part.getFileName().split("\\?")[1];
+
+                                    }
+                                }
+                                rd.addField(ENCODING_FIELD, encoding);
                             }
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_MIMETYPE)) {
                             Multipart mp = (Multipart) msg.getContent();
@@ -568,7 +561,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                             rd.addField(MIMETYPE_FIELD, MIMEType);
                         }
                     }
-                    String documentURI = subject+messageIDTerm;
+                    String documentURI = subject + messageIDTerm;
                     String version = versions[i];
                     activities.ingestDocument(id, version, documentURI, rd);
 
@@ -689,31 +682,31 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      *         connection (and cause a redirection to an error page).
      */
     @Override
-    public String processConfigurationPost(IThreadContext threadContext, IPostParameters variableContext, 
-        ConfigParams parameters) throws ManifoldCFException {
-        
-      String userName = variableContext.getParameter(EmailConfig.USERNAME_PARAM);
+    public String processConfigurationPost(IThreadContext threadContext, IPostParameters variableContext,
+                                           ConfigParams parameters) throws ManifoldCFException {
+
+        String userName = variableContext.getParameter(EmailConfig.USERNAME_PARAM);
         if (userName != null)
             parameters.setParameter(EmailConfig.USERNAME_PARAM, userName);
-        
+
         String password = variableContext.getParameter(EmailConfig.PASSWORD_PARAM);
         if (password != null)
             parameters.setParameter(EmailConfig.PASSWORD_PARAM, password);
-        
+
         String protocol = variableContext.getParameter(EmailConfig.PROTOCOL_PARAM);
         if (protocol != null) {
-            
-          if (protocol.equals(EmailConfig.PROTOCOL_IMAP)){
+
+            if (protocol.equals(EmailConfig.PROTOCOL_IMAP)) {
                 protocol = EmailConfig.PROTOCOL_IMAP_PROVIDER;
             }
-            
-            if (protocol.equals(EmailConfig.PROTOCOL_POP3)){
+
+            if (protocol.equals(EmailConfig.PROTOCOL_POP3)) {
                 protocol = EmailConfig.PROTOCOL_POP3_PROVIDER;
             }
-            
+
             parameters.setParameter(EmailConfig.PROTOCOL_PARAM, protocol);
         }
-        
+
         String server = variableContext.getParameter(EmailConfig.SERVER_PARAM);
         if (server != null)
             parameters.setParameter(EmailConfig.SERVER_PARAM, server);

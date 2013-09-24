@@ -70,7 +70,7 @@ public class EmailConfig {
 
 
     public static final String RELATIONSHIP_CHILD = "child";
-    public static final String PROTOCOL_IMAP = "IMAP";
+    public static final String PROTOCOL_IMAP = "imap";
     public static final String PROTOCOL_IMAP_PROVIDER = "imaps";
     public static final String PROTOCOL_POP3 = "POP3";
     public static final String PROTOCOL_POP3_PROVIDER = "pop3";
