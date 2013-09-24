@@ -102,6 +102,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     @Override
     public void connect(ConfigParams configParameters) {
+        super.connect(configParameters);
         this.server = configParameters.getParameter(EmailConfig.SERVER_PARAM);
         this.port = configParameters.getParameter(EmailConfig.PORT_PARAM);
         this.protocol = configParameters.getParameter(EmailConfig.PROTOCOL_PARAM);
@@ -428,13 +429,22 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     public String[] getDocumentVersions(String[] documentIdentifiers, String[] oldVersions, IVersionActivity activities,
                                         DocumentSpecification spec, int jobMode, boolean usesDefaultAuthority)
             throws ManifoldCFException, ServiceInterruption {
-        String[] result = new String[documentIdentifiers.length];
         
-        //Since visioning is not applicable in the current context.
-        for (String value : result) {
-            value = EMAIL_VERSION;                          
+        String[] result = null;
+        if(documentIdentifiers.length>0){
+          result = new String[documentIdentifiers.length];
+          //Since visioning is not applicable in the current context.
+          if(result != null){
+            for (String value : result) {
+                value = EMAIL_VERSION;                          
+            }
+          }
+          return result;
+          
+        } else {
+          return new String[]{EMAIL_VERSION};
         }
-        return result;
+          
     }
 
     /**
@@ -528,18 +538,20 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                             rd.addField(EmailConfig.EMAIL_DATE, sentDate.toString());
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_ENCODING)) {
                             Multipart mp = (Multipart) msg.getContent();
-                            String[] encoding = new String[mp.getCount()];
-                            for (int k = 0, n = mp.getCount(); i < n; i++) {
-                                Part part = mp.getBodyPart(i);
-                                String disposition = part.getDisposition();
-                                if ((disposition != null) &&
-                                        ((disposition.equals(Part.ATTACHMENT) ||
-                                                (disposition.equals(Part.INLINE))))) {
-                                    encoding[k] = part.getFileName().split("\\?")[1];
-
-                                }
+                              if(mp!=null){
+                              String[] encoding = new String[mp.getCount()];
+                              for (int k = 0, n = mp.getCount(); i < n; i++) {
+                                  Part part = mp.getBodyPart(i);
+                                  String disposition = part.getDisposition();
+                                  if ((disposition != null) &&
+                                          ((disposition.equals(Part.ATTACHMENT) ||
+                                                  (disposition.equals(Part.INLINE))))) {
+                                      encoding[k] = part.getFileName().split("\\?")[1];
+  
+                                  }
+                              }
+                              rd.addField(ENCODING_FIELD, encoding);
                             }
-                            rd.addField(ENCODING_FIELD, encoding);
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_MIMETYPE)) {
                             Multipart mp = (Multipart) msg.getContent();
                             String[] MIMEType = new String[mp.getCount()];
