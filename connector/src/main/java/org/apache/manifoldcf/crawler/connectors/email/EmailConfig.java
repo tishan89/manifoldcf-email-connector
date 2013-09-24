@@ -83,5 +83,11 @@ public class EmailConfig {
     public static final String EMAIL_DATE = "date";
     public static final String EMAIL_ATTACHMENT_ENCODING = "encoding of attachment";
     public static final String EMAIL_ATTACHMENT_MIMETYPE = "mime type of attachment";
+    public static final String EMAIL_VERSION = "1.0";
+    public static final String MIMETYPE_TEXT_PLAIN = "text/plain";
+    public static final String MIMETYPE_HTML = "text/html";
+    public static final String ENCODING_FIELD = "encoding";
+    public static final String MIMETYPE_FIELD = "mimetype";
+    protected final static long SESSION_EXPIRATION_MILLISECONDS = 300000L;
     //public static final String TO = "To";
 }

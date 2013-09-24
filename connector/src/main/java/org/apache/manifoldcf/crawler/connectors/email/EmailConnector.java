@@ -67,14 +67,8 @@ import javax.mail.search.*;
 
 public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.BaseRepositoryConnector {
 
-
-    /**
-     * Session expiration time interval
-     */
-    protected final static long SESSION_EXPIRATION_MILLISECONDS = 300000L;
-
     // Local variables.
-
+    protected long sessionExpiration = -1L;
     protected String server = null;
     protected String port = null;
     protected String username = null;
@@ -84,12 +78,6 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     private String folderName = null;
     private Folder folder;
     private Store store;
-
-    private static final String EMAIL_VERSION = "1.0";
-    private static final String MIMETYPE_TEXT_PLAIN = "text/plain";
-    private static final String MIMETYPE_HTML = "text/html";
-    private static final String ENCODING_FIELD = "encoding";
-    private static final String MIMETYPE_FIELD = "mimetype";
 
 
     //////////////////////////////////Start of Basic Connector Methods/////////////////////////
@@ -143,22 +131,10 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
      */
     @Override
     public void poll() throws ManifoldCFException {
-        while (true) {
-            try {
-                getSession();
-                Folder defaultFolder = store.getDefaultFolder();
-                if (defaultFolder == null) {
-                    Logging.connectors.error(
-                            "Email: Error during checking the connection.");
-                    throw new ManifoldCFException("Email: Error during checking the connection.");
-                }
+        if (store != null)
+        {
+            if (System.currentTimeMillis() >= sessionExpiration)
                 finalizeConnection();
-            } catch (Exception e) {
-                Logging.connectors.error(
-                        "Email: Error during checking the connection.");
-                throw new ManifoldCFException("Email: Error during checking the connection.");
-            }
-            return;
         }
     }
 
@@ -368,6 +344,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         Properties props = new Properties();
         // Get session
         Session session = Session.getDefaultInstance(props, null);
+        sessionExpiration = System.currentTimeMillis() + EmailConfig.SESSION_EXPIRATION_MILLISECONDS;
         return session;
     }
 
@@ -429,13 +406,13 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             //Since visioning is not applicable in the current context.
             if (result != null) {
                 for (String value : result) {
-                    value = EMAIL_VERSION;
+                    value = EmailConfig.EMAIL_VERSION;
                 }
             }
             return result;
 
         } else {
-            return new String[]{EMAIL_VERSION};
+            return new String[]{EmailConfig.EMAIL_VERSION};
         }
 
     }
@@ -519,9 +496,9 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                                 String disposition = part.getDisposition();
                                 if ((disposition == null)) {
                                     MimeBodyPart mbp = (MimeBodyPart) part;
-                                    if (mbp.isMimeType(MIMETYPE_TEXT_PLAIN)) {
+                                    if (mbp.isMimeType(EmailConfig.MIMETYPE_TEXT_PLAIN)) {
                                         rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString());
-                                    } else if (mbp.isMimeType(MIMETYPE_HTML)) {
+                                    } else if (mbp.isMimeType(EmailConfig.MIMETYPE_HTML)) {
                                         rd.addField(EmailConfig.EMAIL_BODY, mbp.getContent().toString()); //handle html accordingly. Returns content with html tags
                                     }
                                 }
@@ -543,7 +520,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
 
                                     }
                                 }
-                                rd.addField(ENCODING_FIELD, encoding);
+                                rd.addField(EmailConfig.ENCODING_FIELD, encoding);
                             }
                         } else if (metadata.toLowerCase().equals(EmailConfig.EMAIL_ATTACHMENT_MIMETYPE)) {
                             Multipart mp = (Multipart) msg.getContent();
@@ -558,7 +535,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
 
                                 }
                             }
-                            rd.addField(MIMETYPE_FIELD, MIMEType);
+                            rd.addField(EmailConfig.MIMETYPE_FIELD, MIMEType);
                         }
                     }
                     String documentURI = subject + messageIDTerm;
