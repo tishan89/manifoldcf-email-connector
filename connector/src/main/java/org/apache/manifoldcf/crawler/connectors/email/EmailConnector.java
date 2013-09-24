@@ -289,7 +289,10 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                 } catch (MessagingException e) {
                     Logging.connectors.warn("Email: Error finding emails: " + e.getMessage(), e);
                     throw new ManifoldCFException(e.getMessage(), e);
-                } finally {
+                } catch (Exception e) {
+                    Logging.connectors.warn("Email: Error finding emails: " + e.getMessage(), e);
+                    throw new ManifoldCFException(e.getMessage(), e);
+                }finally {
                     finalizeConnection();
                 }
 
@@ -306,9 +309,8 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
         String findParameterName;
         String findParameterValue;
         initializeConnection();
-        Message[] temp = folder.getMessages((int) startTime, (int) endTime);
         if (findMap.size() > 0) {
-            result = temp;
+            result = null;
             Iterator it = findMap.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pair = (Map.Entry) it.next();
@@ -320,20 +322,20 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                             "= '" + findParameterValue + "'");
                 if (findParameterName.equals(EmailConfig.EMAIL_SUBJECT)) {
                     SubjectTerm subjectTerm = new SubjectTerm(findParameterValue);
-                    result = folder.search(subjectTerm, temp);
+                    result = folder.search(subjectTerm);
                 } else if (findParameterName.equals(EmailConfig.EMAIL_FROM)) {
                     FromStringTerm fromTerm = new FromStringTerm(findParameterValue);
-                    result = folder.search(fromTerm, temp);
+                    result = folder.search(fromTerm);
                 } else if (findParameterName.equals(EmailConfig.EMAIL_TO)) {
                     RecipientStringTerm recipientTerm = new RecipientStringTerm(Message.RecipientType.TO, findParameterValue);
-                    result = folder.search(recipientTerm, temp);
+                    result = folder.search(recipientTerm);
                 } else if (findParameterName.equals(EmailConfig.EMAIL_BODY)) {
                     BodyTerm bodyTerm = new BodyTerm(findParameterValue);
-                    result = folder.search(bodyTerm, temp);
+                    result = folder.search(bodyTerm);
                 }
             }
         } else {
-            result = temp;
+            result = folder.getMessages();
         }
 
         return result;
@@ -405,8 +407,8 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             result = new String[documentIdentifiers.length];
             //Since visioning is not applicable in the current context.
             if (result != null) {
-                for (String value : result) {
-                    value = EmailConfig.EMAIL_VERSION;
+                for (int i=0;i<documentIdentifiers.length;i++) {
+                    result[i]=EmailConfig.EMAIL_VERSION;
                 }
             }
             return result;
@@ -438,7 +440,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     public void processDocuments(String[] documentIdentifiers, String[] versions, IProcessActivity activities,
                                  DocumentSpecification spec, boolean[] scanOnly, int jobMode)
             throws ManifoldCFException, ServiceInterruption {
-        int i = 0;
+        int i = 0, count=0;
         List<String> requiredMetadata = new ArrayList<>();
         try {
             initializeConnection();
@@ -452,7 +454,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
             }
             for (String id : documentIdentifiers) {
                 long startTime = System.currentTimeMillis();
-                String msgId = documentIdentifiers[i];
+                String msgId = documentIdentifiers[count];
                 InputStream is = null;
                 if (Logging.connectors.isDebugEnabled())
                     Logging.connectors.debug("Email: Processing document identifier '"
@@ -539,7 +541,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                         }
                     }
                     String documentURI = subject + messageIDTerm;
-                    String version = versions[i];
+                    String version = versions[count++];
                     activities.ingestDocument(id, version, documentURI, rd);
 
                 }
