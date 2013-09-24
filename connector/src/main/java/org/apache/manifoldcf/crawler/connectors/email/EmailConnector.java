@@ -272,8 +272,8 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
                 folderName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_VALUE);
             }
         }
-        while (i < spec.getChildCount()) {
-            SpecificationNode sn = spec.getChild(i++);
+        while (j < spec.getChildCount()) {
+            SpecificationNode sn = spec.getChild(j++);
             if (sn.getType().equals(EmailConfig.NODE_FILTER)) {
                 String findParameterName, findParameterValue;
                 findParameterName = sn.getAttributeValue(EmailConfig.ATTRIBUTE_NAME);
