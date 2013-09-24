@@ -190,7 +190,7 @@ public class EmailConnector extends org.apache.manifoldcf.crawler.connectors.Bas
     protected void checkConnection() throws ManifoldCFException, ServiceInterruption {
       while (true) {
         try {
-            getSession();
+            initializeConnection();
             Folder defaultFolder = store.getDefaultFolder();
             if(defaultFolder == null){
               Logging.connectors.error(
